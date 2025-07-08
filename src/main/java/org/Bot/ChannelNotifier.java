@@ -54,6 +54,7 @@ public class ChannelNotifier {
     }
 
     private String getStockMessage(ArrayList<Item> stock) {
+        boolean isMasterInStock = false;
         if (stock.isEmpty()){
             return "";
         }
@@ -67,6 +68,9 @@ public class ChannelNotifier {
 
         // Group items
         for (Item item : stock) {
+            if (item.displayName.equals("Master Sprinkler")){
+                isMasterInStock = true;
+            };
             switch (item.getItemType()) {
                 case "Gear" -> grouped.get("Gear Equipment Stock 🔧").add(item);
                 case "Egg" -> grouped.get("Egg Stock 🥚").add(item);
@@ -77,7 +81,6 @@ public class ChannelNotifier {
 
         for (Map.Entry<String, List<Item>> entry : grouped.entrySet()) {
             if (entry.getValue().isEmpty()) continue;
-
             builder.append(entry.getKey()).append("\n");
             builder.append("Item                    |       Qty\n");
             builder.append("------------------------|-----\n");
@@ -91,6 +94,9 @@ public class ChannelNotifier {
             builder.append("\n");
         }
         builder.append("```");
+        if (isMasterInStock){
+            builder.append("\n @everyone master in stock 🔥💦");
+        }
         return builder.toString();
     }
     void refreshKeys(HashSet<Snowflake> keys){
@@ -101,15 +107,13 @@ public class ChannelNotifier {
         guildChannels.putAll(clientToAdd);
     }
 
-
-    public void notifyBotOnline(GatewayDiscordClient client, ArrayList<Item> lastStock) {
-        String stock = getStockMessage(lastStock);
+    public void notifyBotOnline(GatewayDiscordClient client) {
         Flux.fromIterable(guildList)
                 .flatMap(guildId -> {
                     Snowflake channelId = guildChannels.get(guildId);
                     return client.getChannelById(channelId)
                             .ofType(MessageChannel.class)
-                            .flatMap(channel -> channel.createMessage("I am fully online sending stocks..... \n\n"+ stock));
+                            .flatMap(channel -> channel.createMessage("```I am fully online sending stocks..... 🌱```\n\n"));
                 })
                 .subscribe();
     }

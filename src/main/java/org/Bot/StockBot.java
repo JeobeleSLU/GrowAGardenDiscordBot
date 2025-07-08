@@ -64,6 +64,7 @@ public class StockBot implements Runnable,NotificationHandler {
     }
 
     private void listenToCommands() {
+        startBot();
         gateway.on(MessageCreateEvent.class)
                 .subscribe(event -> {
                     Message message = event.getMessage();
@@ -92,7 +93,7 @@ public class StockBot implements Runnable,NotificationHandler {
     private void startBot() {
         gateway.on(ReadyEvent.class)
                 .doOnNext(event -> {
-                    notifier.notifyBotOnline(gateway,lastStock);
+                    notifier.notifyBotOnline(gateway);
                 })
                 .subscribe();
     }
@@ -108,9 +109,6 @@ public class StockBot implements Runnable,NotificationHandler {
         notifier.notifyChannel(message,lastStock,gateway);
     }
 
-    public void setStock(ArrayList<Item> items) {
-        lastStock = items;
-    }
 
     @Override
     public void triggerEventNotification(String message) {
