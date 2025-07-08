@@ -11,6 +11,7 @@ import java.util.*;
 public class ChannelNotifier {
     HashMap<Snowflake, Snowflake> guildChannels;
     HashSet<Snowflake> guildList;
+    static int cycleCounter = 1;
 
     public ChannelNotifier() {
         guildChannels = new HashMap<>();
@@ -64,7 +65,7 @@ public class ChannelNotifier {
         grouped.put("Seed Stock 🌱", new ArrayList<>());
         grouped.put("Gear Equipment Stock 🔧", new ArrayList<>());
         grouped.put("Egg Stock 🥚", new ArrayList<>());
-        grouped.put("Travelling Merchant ✈️", new ArrayList<>());
+        grouped.put("Travelling Merchant Stock ✈️", new ArrayList<>());
 
         // Group items
         for (Item item : stock) {
@@ -74,7 +75,7 @@ public class ChannelNotifier {
             switch (item.getItemType()) {
                 case "Gear" -> grouped.get("Gear Equipment Stock 🔧").add(item);
                 case "Egg" -> grouped.get("Egg Stock 🥚").add(item);
-                case "Travelling Merchant" -> grouped.get("Travelling Merchant Stock✈️ ").add(item);
+                case "Travelling Merchant" -> grouped.computeIfAbsent("Travelling Merchant Stock ✈️", k -> new ArrayList<>()).add(item);
                 default -> grouped.get("Seed Stock 🌱").add(item);
             }
         }
@@ -119,6 +120,8 @@ public class ChannelNotifier {
     }
 
     public void notifyMessage(String message, GatewayDiscordClient client) {
+        System.out.println("Cycle: " + cycleCounter);
+        cycleCounter++;
         Flux.fromIterable(guildList)
                 .flatMap(guildId -> {
                     Snowflake channelId = guildChannels.get(guildId);

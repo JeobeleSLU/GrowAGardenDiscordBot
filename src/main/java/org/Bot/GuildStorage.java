@@ -91,10 +91,10 @@ public class GuildStorage implements Store {
     @Override
     public boolean store() {
         try(BufferedWriter writer= new BufferedWriter(new FileWriter(jsonFile))) {
-            mapToStore = new HashMap<>();
-            listOfGuildSettings.forEach(e-> {
-                mapToStore.put(e.guildID,e.channelId);
-            });
+                 HashMap<String, String> mapToStore = new HashMap<>();
+        for (Snowflake key : storedJson.keySet()) {
+            mapToStore.put(key.asString(), storedJson.get(key).asString());
+        }
             jsonParser.toJson(mapToStore,writer);
             return true;
         } catch (IOException e) {
@@ -114,7 +114,6 @@ public class GuildStorage implements Store {
         }
         return null;
     }
-
 
     /*
     Converts the json file
@@ -143,6 +142,7 @@ public class GuildStorage implements Store {
     public HashMap<Snowflake,Snowflake> addChannel(Message message) {
         Optional<Snowflake> guildOptional  = message.getGuildId();
         if (message.getGuildId().isEmpty()){
+            System.out.println("Guild id is null");
             return null;
         }
         Snowflake guildID = guildOptional.get();
@@ -152,8 +152,13 @@ public class GuildStorage implements Store {
                 new GuildSetting((guildID).asString(),(message.getChannelId()).asString()));
         HashMap<Snowflake, Snowflake> map = new HashMap<>();
          map.put(guildID,message.getChannelId());
-         store();
+         syncPersistent();
          return map;
+    }
+
+    private void syncPersistent() {
+        store();
+        storedJson  = loadJson();
     }
 
     public HashSet<Snowflake> getKeyset() {

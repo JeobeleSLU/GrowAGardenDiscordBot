@@ -11,7 +11,7 @@ public class Parser {
     ObjectMapper objectMapper;
     JsonNode json;
     final String[] ARRAY_OF_ITEMS = {"seed_stock","gear_stock","egg_stock","travelingmerchant_stock"};
-    final String[] ARRAY_OF_ITEM_TYPES = {"Seed","Gear","Egg","Traveling Merchant"};
+    final String[] ARRAY_OF_ITEM_TYPES = {"Seed","Gear","Egg","Travelling Merchant"};
     final String[] EMOJIS = {"🌱", "🛠️", "🥚","✈️"};
     NotificationHandler bot;
     String previousWeather = "";
