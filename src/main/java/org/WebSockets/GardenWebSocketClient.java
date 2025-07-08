@@ -31,6 +31,7 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
             @Override
             public void onMessage(String message) {
                 if (!message.isEmpty()){
+                    System.out.println(message);
                     bot.sendStock(parser.parseMessage(message));
                 }
             }
