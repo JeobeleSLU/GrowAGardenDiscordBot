@@ -1,5 +1,8 @@
-package org.Bot;
+package org.WebSockets;
 
+import org.Bot.Obeserver;
+import org.Bot.Parser;
+import org.Bot.StockBot;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
@@ -7,11 +10,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Set;
+import java.time.OffsetDateTime;
 
 public class GardenWebSocketClient implements Runnable, Obeserver {
-    public  Parser parser;
-    public   StockBot bot;
+    public Parser parser;
+    public StockBot bot;
     String uniqueIdentifier ;
 
     public GardenWebSocketClient(String uniqueIdentifier) {
@@ -27,9 +30,9 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
             }
             @Override
             public void onMessage(String message) {
-                System.out.println(parser.parseMessage(message));
-                bot.setStock(parser.parseMessage(message));
+                if (!message.isEmpty()){
                     bot.sendStock(parser.parseMessage(message));
+                }
             }
 
             @Override
@@ -60,7 +63,7 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
     @Override
     public void initCon(StockBot bot) {
         this.bot = bot;
-        this.parser = new Parser();
+        this.parser = new Parser(bot);
         run();
     }
 }

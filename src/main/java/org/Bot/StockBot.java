@@ -15,7 +15,7 @@ import discord4j.gateway.intent.IntentSet;
 import javax.smartcardio.CommandAPDU;
 import java.util.ArrayList;
 
-public class StockBot implements Runnable {
+public class StockBot implements Runnable,NotificationHandler {
     GatewayDiscordClient gateway;
     DiscordClient client;
     ChannelNotifier notifier = new ChannelNotifier();
@@ -23,6 +23,7 @@ public class StockBot implements Runnable {
     Obeserver observer;
     ArrayList<Item> lastStock;
     GuildStorage storedGuilds;
+
     public StockBot(String botToken,Obeserver obeserver) {
         this.botToken = botToken;
         this.observer = obeserver;
@@ -36,7 +37,7 @@ public class StockBot implements Runnable {
                 .block();
 
     }
-    void sendStock(ArrayList<Item> items){
+    public void sendStock(ArrayList<Item> items){
         lastStock = items;
         notifier.notifyStock(items,gateway);
     }
@@ -63,7 +64,6 @@ public class StockBot implements Runnable {
     }
 
     private void listenToCommands() {
-        startBot();
         gateway.on(MessageCreateEvent.class)
                 .subscribe(event -> {
                     Message message = event.getMessage();
@@ -110,5 +110,10 @@ public class StockBot implements Runnable {
 
     public void setStock(ArrayList<Item> items) {
         lastStock = items;
+    }
+
+    @Override
+    public void triggerEventNotification(String message) {
+        notifier.notifyMessage(message,gateway);
     }
 }

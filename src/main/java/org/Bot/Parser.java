@@ -5,18 +5,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 
 public class Parser {
     ObjectMapper objectMapper;
     JsonNode json;
-    final String[] ARRAY_OF_ITEMS = {"seed_stock","gear_stock","egg_stock"};
-    final String[] ARRAY_OF_ITEM_TYPES = {"Seed","Gear","Egg"};
-    final String[] EMOJIS = {"🌱", "🛠️", "🥚"};
-
-    public Parser() {
+    final String[] ARRAY_OF_ITEMS = {"seed_stock","gear_stock","egg_stock,","travelingmerchant_stock"};
+    final String[] ARRAY_OF_ITEM_TYPES = {"Seed","Gear","Egg","Traveling merchant"};
+    final String[] EMOJIS = {"🌱", "🛠️", "🥚","✈️"};
+    NotificationHandler bot;
+    public Parser(NotificationHandler bot) {
         init();
+        this.bot = bot;
     }
     public void init(){
         this.objectMapper = new ObjectMapper();
@@ -24,6 +23,14 @@ public class Parser {
     public ArrayList<Item> parseMessage(String message){
         try {
             this.json = objectMapper.readTree(message);
+            JsonNode notifArray = json.get("notification");
+            if (notifArray != null && notifArray.isArray() && notifArray.size() > 0) {
+                JsonNode notif = notifArray.get(0);
+                JsonNode messageNode = notif.get("message");
+                if (messageNode != null && !messageNode.isNull()) {
+                    bot.triggerEventNotification(messageNode.asText());
+                }
+            }
             return printMessage();
         } catch (JsonProcessingException e) {
             System.out.println("SocketThread:cant read tree");
@@ -32,6 +39,8 @@ public class Parser {
     }
 
     private ArrayList<Item> printMessage() {
+
+
         StringBuilder sb = new StringBuilder();
         ArrayList<Item> items = new ArrayList<>();
         for (int i = 0; i < ARRAY_OF_ITEMS.length; i++){
@@ -51,7 +60,6 @@ public class Parser {
                 }
             }
         }
-
         return items;
     }
 

@@ -1,7 +1,6 @@
 package org.Bot;
 
 import discord4j.common.util.Snowflake;
-import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -109,6 +108,17 @@ public class ChannelNotifier {
                     return client.getChannelById(channelId)
                             .ofType(MessageChannel.class)
                             .flatMap(channel -> channel.createMessage("I am fully online sending stocks..... \n\n"+ stock));
+                })
+                .subscribe();
+    }
+
+    public void notifyMessage(String message, GatewayDiscordClient client) {
+        Flux.fromIterable(guildList)
+                .flatMap(guildId -> {
+                    Snowflake channelId = guildChannels.get(guildId);
+                    return client.getChannelById(channelId)
+                            .ofType(MessageChannel.class)
+                            .flatMap(channel -> channel.createMessage("```"+"Notification:"+message+"```"));
                 })
                 .subscribe();
     }
