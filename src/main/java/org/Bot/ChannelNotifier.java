@@ -63,12 +63,14 @@ public class ChannelNotifier {
         grouped.put("Seed Stock 🌱", new ArrayList<>());
         grouped.put("Gear Equipment Stock 🔧", new ArrayList<>());
         grouped.put("Egg Stock 🥚", new ArrayList<>());
+        grouped.put("Travelling Merchant ✈️", new ArrayList<>());
 
         // Group items
         for (Item item : stock) {
             switch (item.getItemType()) {
                 case "Gear" -> grouped.get("Gear Equipment Stock 🔧").add(item);
                 case "Egg" -> grouped.get("Egg Stock 🥚").add(item);
+                case "Travelling Merchant" -> grouped.get("Travelling Merchant Stock✈️ ").add(item);
                 default -> grouped.get("Seed Stock 🌱").add(item);
             }
         }

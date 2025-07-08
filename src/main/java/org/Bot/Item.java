@@ -15,14 +15,7 @@ public class Item {
         this.itemId = itemId;
         this.itemType = itemType;
     }
-    public EmbedCreateSpec getEmebed() {
-        return EmbedCreateSpec.builder()
-                .title(this.displayName + " (" + this.itemId + ")")
-                .thumbnail(this.emoji)
-                .addField("Quantity", String.valueOf(this.quantity), false)
-                .color(Color.ORANGE)
-                .build();
-    }
+
 
     public String getItemType() {
         return itemType;
