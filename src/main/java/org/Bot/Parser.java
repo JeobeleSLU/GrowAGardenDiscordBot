@@ -102,32 +102,48 @@ public class Parser {
             String stockKey = ARRAY_OF_ITEMS[i];
             String emoji = EMOJIS[i];
             String equipmentType = ARRAY_OF_ITEM_TYPES[i];
+
             if (!json.has(stockKey)) continue;
-            JsonNode stockArray = json.get(stockKey);
-            if (!stockArray.isArray()) continue;
-            for (JsonNode item : stockArray) {
-                if (!isValidItem(item)) {
-                    System.out.println("⚠️ Skipping malformed item: " + item.toPrettyString());
-                    continue;
+
+            JsonNode stockNode = json.get(stockKey);
+
+            // Special case: travelingmerchant_stock is an object with a "stock" array inside
+            if (stockKey.equals("travelingmerchant_stock") && stockNode.has("stock")) {
+                JsonNode merchantArray = stockNode.get("stock");
+                if (merchantArray.isArray()) {
+                    for (JsonNode item : merchantArray) {
+                        addItemIfValid(item, emoji, equipmentType, items);
+                    }
                 }
-
-                String itemId = item.get("item_id").asText();
-                String displayName = item.get("display_name").asText();
-                int quantity = item.get("quantity").asInt();
-
-                items.add(new Item(itemId, displayName, String.valueOf(quantity), emoji, equipmentType));
-
-                System.out.printf("✅ Item: %s (%s), Quantity: %d, Icon: %s%n",
-                        displayName, itemId, quantity, emoji);
+            } else if (stockNode.isArray()) {
+                for (JsonNode item : stockNode) {
+                    addItemIfValid(item, emoji, equipmentType, items);
+                }
             }
         }
 
         return items;
     }
+
     boolean isValidItem(JsonNode item) {
         return item.hasNonNull("item_id")
                 && item.hasNonNull("display_name")
                 && item.hasNonNull("quantity");
+    }
+    private void addItemIfValid(JsonNode item, String emoji, String type, ArrayList<Item> items) {
+        if (!isValidItem(item)) {
+            System.out.println(" Skipping malformed item: " + item.toPrettyString());
+            return;
+        }
+
+        String itemId = item.get("item_id").asText();
+        String displayName = item.get("display_name").asText();
+        int quantity = item.get("quantity").asInt();
+
+        items.add(new Item(itemId, displayName, String.valueOf(quantity), emoji, type));
+
+        System.out.printf("✅ Item: %s (%s), Quantity: %d, Icon: %s%n",
+                displayName, itemId, quantity, emoji);
     }
 
 }

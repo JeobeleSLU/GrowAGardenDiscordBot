@@ -83,22 +83,24 @@ public class ChannelNotifier {
 
         EmbedCreateSpec.Builder embedBuilder = EmbedCreateSpec.builder()
                 .title("📦 Stock Report")
-                .color(Color.SEA_GREEN)
+                .color(Color.GRAY_CHATEAU)
                 .timestamp(Instant.now());
 
         // Add only non-empty stock fields as inline
         for (Map.Entry<String, StringBuilder> entry : fieldBuilders.entrySet()) {
             String value = entry.getValue().toString();
-            if (!value.isEmpty()) {
-                embedBuilder.addField(entry.getKey(), "```\n" + value + "```", true);
+            if (entry.getValue().isEmpty()){
+                continue;
             }
+            embedBuilder.addField(entry.getKey(), " " + value ,true);
+//            if (!value.isEmpty()) {
+//                embedBuilder.addField(entry.getKey(), "```\n" + value + "```", true);
+//            }
         }
-
         // Alert field (non-inline) if Master Sprinkler is found
         if (isMasterInStock) {
             embedBuilder.addField("🔥 Alert", "@everyone Master Sprinkler is in stock!", false);
         }
-
         return embedBuilder.build();
     }
     void refreshKeys(HashSet<Snowflake> keys){
