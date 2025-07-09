@@ -9,7 +9,7 @@ A lightweight **Discord bot** that tracks and posts real-time stock updates (see
 - Java 17 or higher
 - Maven or Gradle (for building)
 - A Discord **bot token**
-- Your personal **Discord user ID**
+- Your personal **Discord user ID or any uique String**
 
 ---
 
