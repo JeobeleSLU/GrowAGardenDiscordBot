@@ -1,5 +1,8 @@
 package org.WebSockets;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.Bot.Item;
 import org.Bot.Obeserver;
 import org.Bot.Parser;
@@ -66,6 +69,7 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
                         ArrayList<Item> items = parser.parseMessage(completeJson);
                         if (items != null && !items.isEmpty()) {
                             bot.sendStock(items);
+                            messageBuffer.clear();
                         }
                     }
                 }, debounceDelayMs); // run after 2 second of inactivity
@@ -87,12 +91,28 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
     }
 
     private String appendJsons(List<String> messageBuffer) {
-        StringBuilder builder = new StringBuilder();
-        messageBuffer.forEach(builder::append);
-        messageBuffer.clear();
-        System.out.println(builder.toString());
-        return builder.toString();
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode combined = mapper.createObjectNode();
+
+        for (String json : messageBuffer) {
+            try {
+                JsonNode node = mapper.readTree(json);
+                if (node.isObject()) {
+                    node.fields().forEachRemaining(entry -> combined.set(entry.getKey(), entry.getValue()));
+                }
+            } catch (Exception e) {
+                System.err.println("Invalid JSON during merge: " + e.getMessage());
+            }
+        }
+
+        try {
+            return mapper.writeValueAsString(combined);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{}";
+        }
     }
+
 
     @Override
     public void run() {
