@@ -1,5 +1,6 @@
 package org.WebSockets;
 
+import org.Bot.Item;
 import org.Bot.Obeserver;
 import org.Bot.Parser;
 import org.Bot.StockBot;
@@ -11,6 +12,7 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 
 public class GardenWebSocketClient implements Runnable, Obeserver {
     public Parser parser;
@@ -30,8 +32,12 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
             }
             @Override
             public void onMessage(String message) {
-                if (!message.isEmpty()){
-                    System.out.println(message);
+                ArrayList<Item> items;
+                if (message.isEmpty()){
+                   return;
+                }
+                items = parser.parseMessage(message);
+                if (!items.isEmpty() || items != null){
                     bot.sendStock(parser.parseMessage(message));
                 }
             }

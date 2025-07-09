@@ -114,4 +114,8 @@ public class StockBot implements Runnable,NotificationHandler {
     public void triggerEventNotification(String message) {
         notifier.notifyMessage(message,gateway);
     }
+
+    public void sendToDevConsole(Exception ex) {
+        notifier.sendToDevConsoles(ex,gateway);
+    }
 }

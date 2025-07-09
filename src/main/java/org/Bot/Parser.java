@@ -40,7 +40,7 @@ public class Parser {
 
     private void getWeather(String message) {
         JsonNode weatherArray = json.get("weather");
-        if (weatherArray!= null && weatherArray.isArray() && weatherArray.size() > 0){
+        if (weatherArray!= null && weatherArray.isArray() && weatherArray.isEmpty()){
             JsonNode weathers = weatherArray;
            ArrayList<String> activeWeather = checkForActiveWeathers(weathers);
            if (!weathers.isEmpty()){
@@ -84,7 +84,6 @@ public class Parser {
         JsonNode notifArray = json.get("notification");
         if (notifArray != null && notifArray.isArray() && notifArray.size() > 0) {
             JsonNode notif = notifArray.get(0);
-
             JsonNode messageNode = notif.get("message");
             if (messageNode != null && !messageNode.isNull()) {
                 JsonNode start = notif.get("timestamp");
@@ -97,28 +96,38 @@ public class Parser {
     }
 
     private ArrayList<Item> printMessage() {
-
-
-        StringBuilder sb = new StringBuilder();
         ArrayList<Item> items = new ArrayList<>();
-        for (int i = 0; i < ARRAY_OF_ITEMS.length; i++){
+
+        for (int i = 0; i < ARRAY_OF_ITEMS.length; i++) {
+            String stockKey = ARRAY_OF_ITEMS[i];
             String emoji = EMOJIS[i];
-           String equipmentType = ARRAY_OF_ITEM_TYPES[i];
-        if (json.has(ARRAY_OF_ITEMS[i])) {
-                JsonNode seedStock = json.get(ARRAY_OF_ITEMS[i]);
-                sb.append("\n--- SocketThread:Seed Stock ---\n");
-                for (JsonNode item : seedStock) {
-                    String itemId = item.get("item_id").asText();
-                    String displayName = item.get("display_name").asText();
-                    int quantity = item.get("quantity").asInt();
-                    items.add(new Item(itemId,displayName,String.valueOf(quantity),emoji,equipmentType));
-                    sb.append(String.format("Item: %s (%s), Quantity: %d, Icon: %s%n",
-                            displayName, itemId, quantity,emoji));
-                    System.out.println(sb.toString());
+            String equipmentType = ARRAY_OF_ITEM_TYPES[i];
+            if (!json.has(stockKey)) continue;
+            JsonNode stockArray = json.get(stockKey);
+            if (!stockArray.isArray()) continue;
+            for (JsonNode item : stockArray) {
+                if (!isValidItem(item)) {
+                    System.out.println("⚠️ Skipping malformed item: " + item.toPrettyString());
+                    continue;
                 }
+
+                String itemId = item.get("item_id").asText();
+                String displayName = item.get("display_name").asText();
+                int quantity = item.get("quantity").asInt();
+
+                items.add(new Item(itemId, displayName, String.valueOf(quantity), emoji, equipmentType));
+
+                System.out.printf("✅ Item: %s (%s), Quantity: %d, Icon: %s%n",
+                        displayName, itemId, quantity, emoji);
             }
         }
+
         return items;
+    }
+    boolean isValidItem(JsonNode item) {
+        return item.hasNonNull("item_id")
+                && item.hasNonNull("display_name")
+                && item.hasNonNull("quantity");
     }
 
 }

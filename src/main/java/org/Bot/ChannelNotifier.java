@@ -4,8 +4,11 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.spec.EmbedCreateSpec;
+import discord4j.rest.util.Color;
 import reactor.core.publisher.Flux;
 
+import java.time.Instant;
 import java.util.*;
 
 public class ChannelNotifier {
@@ -24,7 +27,7 @@ public class ChannelNotifier {
     };
 
     public void notifyStock(ArrayList<Item> items, GatewayDiscordClient client) {
-        String stock = getStockMessage(items);
+        EmbedCreateSpec stock = getStockMessage(items);
         Flux.fromIterable(guildList)
                 .flatMap(guildId -> {
                     Snowflake channelId = guildChannels.get(guildId);
@@ -42,63 +45,61 @@ public class ChannelNotifier {
                     .subscribe();
             return;
         }
-        String stock = getStockMessage(lastStock);
-        if (stock.isEmpty()){
-
-        }else {
+        EmbedCreateSpec stock = getStockMessage(lastStock);
         client.getChannelById(message.getChannelId())
                 .ofType(MessageChannel.class)
                 .flatMapMany(channel ->channel.createMessage(stock)
                 )
                 .subscribe();
         }
-    }
 
-    private String getStockMessage(ArrayList<Item> stock) {
+    private EmbedCreateSpec getStockMessage(ArrayList<Item> stock) {
+        Map<String, StringBuilder> fieldBuilders = new LinkedHashMap<>();
+        fieldBuilders.put("Seed Stock 🌱", new StringBuilder());
+        fieldBuilders.put("Gear Equipment Stock 🔧", new StringBuilder());
+        fieldBuilders.put("Egg Stock 🥚", new StringBuilder());
+        fieldBuilders.put("Travelling Merchant Stock ✈️", new StringBuilder());
+
         boolean isMasterInStock = false;
-        if (stock.isEmpty()){
-            return "";
-        }
-        StringBuilder builder = new StringBuilder("```\n");
 
-        Map<String, List<Item>> grouped = new LinkedHashMap<>();
-        grouped.put("Seed Stock 🌱", new ArrayList<>());
-        grouped.put("Gear Equipment Stock 🔧", new ArrayList<>());
-        grouped.put("Egg Stock 🥚", new ArrayList<>());
-        grouped.put("Travelling Merchant Stock ✈️", new ArrayList<>());
-
-        // Group items
         for (Item item : stock) {
-            if (item.displayName.equals("Master Sprinkler")){
+            if ("Master Sprinkler".equals(item.displayName)) {
                 isMasterInStock = true;
+            }
+
+            String itemType = item.getItemType();
+            String fieldKey = switch (itemType) {
+                case "Gear" -> "Gear Equipment Stock 🔧";
+                case "Egg" -> "Egg Stock 🥚";
+                case "Travelling Merchant" -> "Travelling Merchant Stock ✈️";
+                default -> "Seed Stock 🌱";
             };
-            switch (item.getItemType()) {
-                case "Gear" -> grouped.get("Gear Equipment Stock 🔧").add(item);
-                case "Egg" -> grouped.get("Egg Stock 🥚").add(item);
-                case "Travelling Merchant" -> grouped.computeIfAbsent("Travelling Merchant Stock ✈️", k -> new ArrayList<>()).add(item);
-                default -> grouped.get("Seed Stock 🌱").add(item);
+
+            StringBuilder field = fieldBuilders.get(fieldKey);
+            field.append(item.getEmoji()).append(" ")
+                    .append(item.displayName)
+                    .append(" x").append(item.quantity).append("\n");
+        }
+
+        EmbedCreateSpec.Builder embedBuilder = EmbedCreateSpec.builder()
+                .title("📦 Stock Report")
+                .color(Color.SEA_GREEN)
+                .timestamp(Instant.now());
+
+        // Add only non-empty stock fields as inline
+        for (Map.Entry<String, StringBuilder> entry : fieldBuilders.entrySet()) {
+            String value = entry.getValue().toString();
+            if (!value.isEmpty()) {
+                embedBuilder.addField(entry.getKey(), "```\n" + value + "```", true);
             }
         }
 
-        for (Map.Entry<String, List<Item>> entry : grouped.entrySet()) {
-            if (entry.getValue().isEmpty()) continue;
-            builder.append(entry.getKey()).append("\n");
-            builder.append("Item                    |       Qty\n");
-            builder.append("------------------------|-----\n");
-
-            for (Item item : entry.getValue()) {
-                String name = String.format("%-25s", item.getEmoji() + " " + item.displayName);
-                String qty = String.format("%7s", item.quantity);
-                builder.append(name).append("| ").append(qty).append("\n");
-            }
-
-            builder.append("\n");
+        // Alert field (non-inline) if Master Sprinkler is found
+        if (isMasterInStock) {
+            embedBuilder.addField("🔥 Alert", "@everyone Master Sprinkler is in stock!", false);
         }
-        builder.append("```");
-        if (isMasterInStock){
-            builder.append("\n @everyone master in stock 🔥💦");
-        }
-        return builder.toString();
+
+        return embedBuilder.build();
     }
     void refreshKeys(HashSet<Snowflake> keys){
         this.guildList = keys;
@@ -130,5 +131,10 @@ public class ChannelNotifier {
                             .flatMap(channel -> channel.createMessage("```"+"Notification:"+message+"```"));
                 })
                 .subscribe();
+    }
+
+    public void sendToDevConsoles(Exception ex, GatewayDiscordClient gateway) {
+
+        System.out.println("akjsdh");
     }
 }
