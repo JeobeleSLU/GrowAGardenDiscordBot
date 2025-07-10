@@ -25,12 +25,6 @@ public class Parser {
     public ArrayList<Item> parseMessage(String message){
         try {
             this.json = objectMapper.readTree(message);
-            if (json.has("notification")){
-                getNotifications(message);
-            }
-            if (json.has("weather")){
-                getWeather(message);
-            }
             return printMessage();
         } catch (JsonProcessingException e) {
             System.out.println("SocketThread:cant read tree");
@@ -38,7 +32,7 @@ public class Parser {
         }
     }
 
-    private void getWeather(String message) {
+    public void getWeather(JsonNode json) {
         JsonNode weatherArray = json.get("weather");
         if (weatherArray!= null && weatherArray.isArray() && weatherArray.isEmpty()){
             JsonNode weathers = weatherArray;
@@ -79,7 +73,7 @@ public class Parser {
         return currentTime >= start && currentTime < end;
     }
 
-    private void getNotifications(String message) {
+    public void getNotifications(JsonNode json) {
         long currentTime = Instant.now().getEpochSecond();
         JsonNode notifArray = json.get("notification");
         if (notifArray != null && notifArray.isArray() && notifArray.size() > 0) {

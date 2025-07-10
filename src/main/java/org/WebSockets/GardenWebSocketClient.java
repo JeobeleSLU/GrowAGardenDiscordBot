@@ -1,5 +1,6 @@
 package org.WebSockets;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,6 +16,7 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -31,6 +33,9 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
     private Timer debounceTimer = new Timer();
     private final List<String> messageBuffer = new ArrayList<>();
     String url;
+    boolean isEggTime = false;
+    // 60 seconds in 1 minute, 30 minutes in alf an hour
+    int secondsInHalfHour = 60 * 30;
 
     public GardenWebSocketClient(String uniqueIdentifier) {
         this.uniqueIdentifier = uniqueIdentifier;
@@ -53,8 +58,17 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
             public synchronized void onMessage(String message) {
                 numberOfIteration++;
                 System.out.println("Number of messages incoming " + numberOfIteration);
+                inspectMessage(message);
 
                 if (message.isEmpty()) return;
+                //If its egg time, set egg time to true
+                if (isEggTime() ||isEggTime ){
+                    isEggTime = true;
+                    messageBuffer.add(message);
+                    if (messageBuffer.size() < 3){
+                        return;
+                    }
+                }
                 messageBuffer.add(message);
                 if (messageBuffer.size() < 2  && numberOfIteration > 1 ){
                     return;
@@ -62,7 +76,7 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
 
                 debounceTimer.cancel();
                 debounceTimer = new Timer();
-
+                // Once the message is sent, set the egg time to false
                 debounceTimer.schedule(new TimerTask() {
                     @Override
                     public void run() {
@@ -70,10 +84,11 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
                         ArrayList<Item> items = parser.parseMessage(completeJson);
                         if (items != null && !items.isEmpty()) {
                             bot.sendStock(items);
+                            isEggTime = false;
                             messageBuffer.clear();
                         }
                     }
-                }, debounceDelayMs); // run after 2 second of inactivity
+                }, debounceDelayMs); // run after 10 millisecond of inactivity
             }
 
             @Override
@@ -91,10 +106,32 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
         client.connect();
     }
 
+    private boolean isEggTime() {
+        //If it's divisible by 1800 or 30 mins its egg time
+        return Instant.now().getEpochSecond() % secondsInHalfHour == 0;
+    }
+
+    private void inspectMessage(String message) {
+        if(message.isEmpty()){
+            return;
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode node = mapper.readTree(message);
+            if (node.has("weather")){
+                parser.getWeather(node);
+            }
+            if (node.has("notification")){
+                parser.getNotifications(node);
+            }
+        } catch (JsonProcessingException e) {
+            //Do something here
+        }
+    }
+
     private String appendJsons(List<String> messageBuffer) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode combined = mapper.createObjectNode();
-
         for (String json : messageBuffer) {
             try {
                 JsonNode node = mapper.readTree(json);
