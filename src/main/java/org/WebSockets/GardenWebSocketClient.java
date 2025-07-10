@@ -16,10 +16,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
@@ -46,14 +43,18 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
             public void onOpen(ServerHandshake handshake) {
                 System.out.println("SocketThread:WebSocket connection established.");
             }
-
+            /*
+            TODO:Refactor to make this its own messaging extractor class
+            Create a per user basis for the pinging for custom stocks
+            Create a weather notification checker
+            create a notification checker
+            */
             @Override
             public synchronized void onMessage(String message) {
                 numberOfIteration++;
                 System.out.println("Number of messages incoming " + numberOfIteration);
 
                 if (message.isEmpty()) return;
-
                 messageBuffer.add(message);
                 if (messageBuffer.size() < 2  && numberOfIteration > 1 ){
                     return;
@@ -77,13 +78,13 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
 
             @Override
             public void onClose(int code, String reason, boolean remote) {
-                reconnect();
+                attemptReconnect();
                 System.out.println("WebSocket connection closed.");
             }
 
             @Override
             public void onError(Exception ex) {
-                reconnect();
+                attemptReconnect();
                 System.err.println("WebSocket error: " + ex.getMessage());
             }
         };
@@ -117,8 +118,9 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
     @Override
     public void run() {
         try {
+//            URLEncoder.encode(userId, StandardCharsets.UTF_8);
             String userId = uniqueIdentifier;
-            String encodedUserId = URLEncoder.encode(userId, StandardCharsets.UTF_8);
+            String encodedUserId =UUID.randomUUID().toString();
             url = "wss://websocket.joshlei.com/growagarden?user_id=" + encodedUserId;
             connect(url);
             System.out.println("Connected successfully to the web socket");
