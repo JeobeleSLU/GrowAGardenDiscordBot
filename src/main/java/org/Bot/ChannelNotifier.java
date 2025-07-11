@@ -8,6 +8,7 @@ import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Color;
 import reactor.core.publisher.Flux;
 
+import java.awt.image.BufferedImage;
 import java.time.Instant;
 import java.util.*;
 
@@ -93,9 +94,6 @@ public class ChannelNotifier {
                 continue;
             }
             embedBuilder.addField(entry.getKey(), " " + value ,true);
-//            if (!value.isEmpty()) {
-//                embedBuilder.addField(entry.getKey(), "```\n" + value + "```", true);
-//            }
         }
         // Alert field (non-inline) if Master Sprinkler is found
         if (isMasterInStock) {
@@ -123,6 +121,12 @@ public class ChannelNotifier {
     }
 
     public void notifyMessage(String message, GatewayDiscordClient client) {
+        EmbedCreateSpec.Builder embedBuilder = EmbedCreateSpec.builder()
+                .title("🛎️ Notification: ")
+                .color(Color.GRAY_CHATEAU)
+                .timestamp(Instant.now());
+
+        embedBuilder.addField("Notification",message,true);
         System.out.println("Cycle: " + cycleCounter);
         cycleCounter++;
         Flux.fromIterable(guildList)
@@ -130,13 +134,50 @@ public class ChannelNotifier {
                     Snowflake channelId = guildChannels.get(guildId);
                     return client.getChannelById(channelId)
                             .ofType(MessageChannel.class)
-                            .flatMap(channel -> channel.createMessage("```"+"Notification:"+message+"```"));
+                            .flatMap(channel -> channel.createEmbed(embedBuilder.build()));
                 })
                 .subscribe();
     }
 
     public void sendToDevConsoles(Exception ex, GatewayDiscordClient gateway) {
 
-        System.out.println("akjsdh");
+    }
+
+    public void alertWeather(ArrayList<String> weathers, GatewayDiscordClient client) {
+        EmbedCreateSpec.Builder embedBuilder = EmbedCreateSpec.builder()
+                .title("☁️ Weather : ")
+                .color(Color.GRAY_CHATEAU)
+                .timestamp(Instant.now());
+        if (weathers.size() == 1){
+            embedBuilder.addField("Current Weather: ", weathers.get(0),true);
+        }else {
+            String extractedString = extractWeathers(weathers);
+            embedBuilder.addField("Current Weather: ", extractedString, true);
+        }
+        Flux.fromIterable(guildList)
+                .flatMap(guildId -> {
+                    Snowflake channelId = guildChannels.get(guildId);
+                    return client.getChannelById(channelId)
+                            .ofType(MessageChannel.class)
+                            .flatMap(channel -> channel.createEmbed(embedBuilder.build()));
+                })
+                .subscribe();
+    }
+
+    private String extractWeathers(ArrayList<String> weathers) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("[");
+        for (int i = 0 ; i < weathers.size(); i++){
+
+            if (i == weathers.size() -1 ){
+                builder.append("]");
+                break;
+            }
+            builder.append(weathers.get(i));
+            if (i != weathers.size()- 2){
+                builder.append(" + ");
+            }
+        }
+        return builder.toString();
     }
 }

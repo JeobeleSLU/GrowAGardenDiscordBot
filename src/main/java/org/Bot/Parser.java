@@ -14,10 +14,12 @@ public class Parser {
     final String[] ARRAY_OF_ITEM_TYPES = {"Seed","Gear","Egg","Travelling Merchant"};
     final String[] EMOJIS = {"🌱", "🛠️", "🥚","✈️"};
     NotificationHandler bot;
+    WeatherAlert weather;
     String previousWeather = "";
-    public Parser(NotificationHandler bot) {
+    public Parser(NotificationHandler bot,WeatherAlert weather) {
         init();
         this.bot = bot;
+        this.weather = weather;
     }
     public void init(){
         this.objectMapper = new ObjectMapper();
@@ -33,28 +35,18 @@ public class Parser {
     }
 
     public void getWeather(JsonNode json) {
-        JsonNode weatherArray = json.get("weather");
-        if (weatherArray!= null && weatherArray.isArray() && weatherArray.isEmpty()){
-            JsonNode weathers = weatherArray;
-           ArrayList<String> activeWeather = checkForActiveWeathers(weathers);
-           if (!weathers.isEmpty()){
-               createMessageForWeather(activeWeather);
-           }
+        if (json.has("weather")) {
+            JsonNode weatherArray = json.get("weather");
+            if (weatherArray != null && weatherArray.isArray() && !weatherArray.isEmpty()) {
+                ArrayList<String> activeWeather = checkForActiveWeathers(weatherArray);
+                if (!activeWeather.isEmpty()) {
+                    weather.nottifyWeather(activeWeather);
+                }
+            }
         }
     }
 
-    private void createMessageForWeather(ArrayList<String> activeWeather) {
-        if (activeWeather.size() == 1){
-            bot.triggerEventNotification("Current weather is "+activeWeather.get(0));
-        }
-        StringBuilder builder = new StringBuilder();
-        builder.append("Current Weather are ");
-        builder.append("[");
-        activeWeather.forEach(e-> {
-            builder.append(e).append(" + ");
-        });
-        builder.append("]");
-        }
+
 
     private ArrayList<String> checkForActiveWeathers(JsonNode weathers) {
         ArrayList<String> activeWeathers = new ArrayList<>();

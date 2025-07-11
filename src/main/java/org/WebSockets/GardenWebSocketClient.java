@@ -10,6 +10,7 @@ import org.Bot.Parser;
 import org.Bot.StockBot;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -20,10 +21,12 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 public class GardenWebSocketClient implements Runnable, Obeserver {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(GardenWebSocketClient.class);
     public Parser parser;
     public StockBot bot;
     String uniqueIdentifier;
@@ -37,8 +40,7 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
     // 60 seconds in 1 minute, 30 minutes in alf an hour
     int secondsInHalfHour = 60 * 30;
 
-    public GardenWebSocketClient(String uniqueIdentifier) {
-        this.uniqueIdentifier = uniqueIdentifier;
+    public GardenWebSocketClient() {
     }
 
     private void connect(String url) throws URISyntaxException {
@@ -68,8 +70,9 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
                     if (messageBuffer.size() < 3){
                         return;
                     }
+                }else {
+                    messageBuffer.add(message);
                 }
-                messageBuffer.add(message);
                 if (messageBuffer.size() < 2  && numberOfIteration > 1 ){
                     return;
                 }
@@ -118,8 +121,10 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
         ObjectMapper mapper = new ObjectMapper();
         try {
             JsonNode node = mapper.readTree(message);
+            System.out.println("GWSThread: " + message);
             if (node.has("weather")){
                 parser.getWeather(node);
+                log.info("Weather happening ! ");
             }
             if (node.has("notification")){
                 parser.getNotifications(node);
@@ -150,13 +155,9 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
             return "{}";
         }
     }
-
-
     @Override
     public void run() {
         try {
-//            URLEncoder.encode(userId, StandardCharsets.UTF_8);
-            String userId = uniqueIdentifier;
             String encodedUserId =UUID.randomUUID().toString();
             url = "wss://websocket.joshlei.com/growagarden?user_id=" + encodedUserId;
             connect(url);
@@ -169,7 +170,7 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
     @Override
     public void initCon(StockBot bot) {
         this.bot = bot;
-        this.parser = new Parser(bot);
+        this.parser = new Parser(bot,bot);
         run();
     }
 

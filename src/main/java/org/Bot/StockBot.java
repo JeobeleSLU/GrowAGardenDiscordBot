@@ -15,7 +15,7 @@ import discord4j.gateway.intent.IntentSet;
 import javax.smartcardio.CommandAPDU;
 import java.util.ArrayList;
 
-public class StockBot implements Runnable,NotificationHandler {
+public class StockBot implements Runnable,NotificationHandler,WeatherAlert {
     GatewayDiscordClient gateway;
     DiscordClient client;
     ChannelNotifier notifier = new ChannelNotifier();
@@ -117,5 +117,10 @@ public class StockBot implements Runnable,NotificationHandler {
 
     public void sendToDevConsole(Exception ex) {
         notifier.sendToDevConsoles(ex,gateway);
+    }
+
+    @Override
+    public void nottifyWeather(ArrayList<String> weather) {
+        notifier.alertWeather(weather,gateway);
     }
 }
