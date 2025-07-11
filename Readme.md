@@ -6,11 +6,10 @@ A lightweight **Discord bot** that tracks and posts real-time stock updates (see
 
 ## 📦 Requirements
 
-- Java 17 or higher
-- Maven or Gradle (for building)
+- Java 17
+- Maven
 - A Discord **bot token**
 - Your personal **Discord user ID or any uique String**
-
 ---
 
 ## 🚀 Getting Started
@@ -32,6 +31,6 @@ mvn clean package
 ```
 3️⃣ Run the Bot
 The bot requires two arguments:
-java -jar target/grow-a-garden-stock-bot.jar <BOT_TOKEN> <YOUR_DISCORD_ID>
+java -jar target/grow-a-garden-stock-bot.jar <BOT_TOKEN>
 ```
 
