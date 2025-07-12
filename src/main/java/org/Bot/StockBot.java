@@ -2,17 +2,12 @@ package org.Bot;
 
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.event.domain.guild.MemberJoinEvent;
-import discord4j.core.event.domain.lifecycle.ConnectEvent;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
-import discord4j.core.object.command.ApplicationCommand;
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.Channel;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
 
-import javax.smartcardio.CommandAPDU;
 import java.util.ArrayList;
 
 public class StockBot implements Runnable,NotificationHandler,WeatherAlert {
@@ -61,6 +56,7 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert {
     private void initComponents() {
         storedGuilds = new GuildStorage();
         notifier.initComponents(storedGuilds.getChannels(),storedGuilds.getKeyset());
+        notifier.setDiscordGateway(gateway);
     }
 
     private void listenToCommands() {
@@ -72,23 +68,40 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert {
 
                     if("!sendStocks".equalsIgnoreCase(content)){
                         notifier.notifyChannel(message,lastStock,gateway);
+                    }else if("!setChannel".equalsIgnoreCase(content)){
+                        setChannel(message);
+                    } else if ("!Hello".equalsIgnoreCase(content)) {
+                        sendWorld(message);
+                    } else if ("!ping".equalsIgnoreCase(content)) {
+                        sendPong(message);
+                    } else if ("!setRole".equalsIgnoreCase(content)) {
+                        setRole(message);
                     }
 
-                    if ("!setChannel".equalsIgnoreCase(content)){
-                        setChannel(message);
-                    }
-                    if ("!Hello".equalsIgnoreCase(content)) {
-                        message.getChannel()
-                                .flatMap(channel -> channel.createMessage("World"))
-                                .subscribe();
-                    }
-                    if ("!ping".equalsIgnoreCase(content)) {
-                        message.getChannel()
-                                .flatMap(channel -> channel.createMessage("Pong!"))
-                                .subscribe();
-                    }
                 });
     }
+
+    private void setRole(Message message) {
+        storedGuilds.addRole(message);
+    }
+
+    private void sendUnknownCommand(Message message) {
+        message.getChannel().flatMap(channel -> channel.createMessage(message.getContent()+
+                " is an unknown command")).subscribe();
+    }
+
+    private void sendPong(Message message) {
+    message.getChannel()
+            .flatMap(channel -> channel.createMessage("Pong!"))
+            .subscribe();
+}
+
+private void sendWorld(Message message) {
+        message.getChannel()
+                .flatMap(channel -> channel.createMessage("World!"))
+                .subscribe();
+    }
+
 
     private void startBot() {
         gateway.on(ReadyEvent.class)
@@ -114,11 +127,9 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert {
     public void triggerEventNotification(String message) {
         notifier.notifyMessage(message,gateway);
     }
-
     public void sendToDevConsole(Exception ex) {
         notifier.sendToDevConsoles(ex,gateway);
     }
-
     @Override
     public void nottifyWeather(ArrayList<String> weather) {
         notifier.alertWeather(weather,gateway);

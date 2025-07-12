@@ -8,7 +8,6 @@ import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Color;
 import reactor.core.publisher.Flux;
 
-import java.awt.image.BufferedImage;
 import java.time.Instant;
 import java.util.*;
 
@@ -16,27 +15,22 @@ public class ChannelNotifier {
     HashMap<Snowflake, Snowflake> guildChannels;
     HashSet<Snowflake> guildList;
     static int cycleCounter = 1;
+    GatewayDiscordClient gateway;
+    HashSet<GuildReference> guilds;
 
     public ChannelNotifier() {
         guildChannels = new HashMap<>();
          guildList= new HashSet<>();
+         guilds =new HashSet<>();
     }
     void initComponents(HashMap<Snowflake, Snowflake> guildChannels, HashSet<Snowflake> guildList){
         this.guildChannels = guildChannels;
         this.guildList = guildList;
-
     };
 
     public void notifyStock(ArrayList<Item> items, GatewayDiscordClient client) {
-        EmbedCreateSpec stock = getStockMessage(items);
-        Flux.fromIterable(guildList)
-                .flatMap(guildId -> {
-                    Snowflake channelId = guildChannels.get(guildId);
-                    return client.getChannelById(channelId)
-                            .ofType(MessageChannel.class)
-                            .flatMap(channel -> channel.createMessage(stock));
-                })
-                .subscribe();
+        EmbedCreateSpec.Builder stock = getStockMessage(items);
+       sendEmbed(stock,client);
     }
     public void notifyChannel(Message message, ArrayList<Item> lastStock, GatewayDiscordClient client) {
         if (lastStock == null || lastStock.isEmpty()) {
@@ -46,7 +40,7 @@ public class ChannelNotifier {
                     .subscribe();
             return;
         }
-        EmbedCreateSpec stock = getStockMessage(lastStock);
+        EmbedCreateSpec stock = getStockMessage(lastStock).build();
         client.getChannelById(message.getChannelId())
                 .ofType(MessageChannel.class)
                 .flatMapMany(channel ->channel.createMessage(stock)
@@ -54,7 +48,7 @@ public class ChannelNotifier {
                 .subscribe();
         }
 
-    private EmbedCreateSpec getStockMessage(ArrayList<Item> stock) {
+    private EmbedCreateSpec.Builder getStockMessage(ArrayList<Item> stock) {
         Map<String, StringBuilder> fieldBuilders = new LinkedHashMap<>();
         fieldBuilders.put("Seed Stock 🌱", new StringBuilder());
         fieldBuilders.put("Gear Equipment Stock 🔧", new StringBuilder());
@@ -98,15 +92,12 @@ public class ChannelNotifier {
         // Alert field (non-inline) if Master Sprinkler is found
         if (isMasterInStock) {
             embedBuilder.addField("🔥 Alert", "@everyone Master Sprinkler is in stock!", false);
+            mentionEveryone("Master Sprinkler is in stock!");
         }
-        return embedBuilder.build();
+        return embedBuilder;
     }
     void refreshKeys(HashSet<Snowflake> keys){
         this.guildList = keys;
-    }
-
-    public void subscribeToEvent(HashMap<Snowflake, Snowflake> clientToAdd) {
-        guildChannels.putAll(clientToAdd);
     }
 
     public void notifyBotOnline(GatewayDiscordClient client) {
@@ -125,10 +116,16 @@ public class ChannelNotifier {
                 .title("🛎️ Notification: ")
                 .color(Color.GRAY_CHATEAU)
                 .timestamp(Instant.now());
-
         embedBuilder.addField("Notification",message,true);
+        if (message.equalsIgnoreCase("The Traveling Merchant has arrived")){
+            mentionEveryone(message);
+        }
         System.out.println("Cycle: " + cycleCounter);
         cycleCounter++;
+        sendEmbed(embedBuilder,client);
+    }
+
+    private void sendEmbed(EmbedCreateSpec.Builder embedBuilder, GatewayDiscordClient client) {
         Flux.fromIterable(guildList)
                 .flatMap(guildId -> {
                     Snowflake channelId = guildChannels.get(guildId);
@@ -138,13 +135,13 @@ public class ChannelNotifier {
                 })
                 .subscribe();
     }
-
     public void sendToDevConsoles(Exception ex, GatewayDiscordClient gateway) {
 
     }
 
     public void alertWeather(ArrayList<String> weathers, GatewayDiscordClient client) {
         EmbedCreateSpec.Builder embedBuilder = EmbedCreateSpec.builder()
+
                 .title("☁️ Weather : ")
                 .color(Color.GRAY_CHATEAU)
                 .timestamp(Instant.now());
@@ -154,9 +151,10 @@ public class ChannelNotifier {
             String extractedString = extractWeathers(weathers);
             embedBuilder.addField("Current Weather: ", extractedString, true);
         }
-        Flux.fromIterable(guildList)
+
+        Flux.fromIterable(guilds)
                 .flatMap(guildId -> {
-                    Snowflake channelId = guildChannels.get(guildId);
+                    Snowflake channelId =guildId.getChannelID();
                     return client.getChannelById(channelId)
                             .ofType(MessageChannel.class)
                             .flatMap(channel -> channel.createEmbed(embedBuilder.build()));
@@ -179,5 +177,28 @@ public class ChannelNotifier {
             }
         }
         return builder.toString();
+    }
+    //Mention everyone for something
+    void mentionEveryone(String Reason){
+        String mention = "@everyone";
+        Flux.fromIterable(guildList)
+                .flatMap(guildId -> {
+                    Snowflake channelId = guildChannels.get(guildId);
+                    return gateway.getChannelById(channelId)
+                            .ofType(MessageChannel.class)
+                            .flatMap(channel -> channel.createMessage(mention + " "+ Reason));
+                })
+                .subscribe();
+    }
+    public void setDiscordGateway(GatewayDiscordClient gateway) {
+        this.gateway = gateway;
+    }
+
+
+    public void subscribeToEvent(HashMap<Snowflake, Snowflake> snowflakeSnowflakeHashMap) {
+        guildChannels.putAll(snowflakeSnowflakeHashMap);
+    }
+    void addAllGuild(ArrayList<GuildReference> guildToAdd){
+        guilds.addAll(guildToAdd);
     }
 }

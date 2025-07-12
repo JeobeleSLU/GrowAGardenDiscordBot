@@ -25,17 +25,18 @@ public class GuildStorage implements Store {
     HashMap<Snowflake, Snowflake> storedJson;
     Gson jsonParser;
     String filePath = "src/main/resources/guilds.json";
-    Type type = new TypeToken<HashMap<String, String>>(){}.getType();
+    private static final Type GUILD_SETTINGS_TYPE = new TypeToken<ArrayList<GuildSetting>>(){}.getType();
+
     ArrayList<GuildSetting> listOfGuildSettings;
-    HashMap<String,String> mapToStore;
     HashSet<Snowflake> keyset;
     File jsonFile;
-
+    ArrayList<GuildReference> guildObject;
     void initialize(){
         jsonParser = new GsonBuilder().setPrettyPrinting().create();
         jsonFile = new File(filePath);
         listOfGuildSettings = new ArrayList<>();
         keyset = new HashSet<>();
+        guildObject = new ArrayList<>();
     }
 
     public boolean addData(GuildSetting setting){
@@ -54,7 +55,7 @@ public class GuildStorage implements Store {
     public GuildStorage() {
         initialize();
         if (!isJsonEmpty() ){
-            storedJson = loadJson();
+            loadJson();
         }else {
             storedJson = new HashMap<>();
         }
@@ -91,11 +92,7 @@ public class GuildStorage implements Store {
     @Override
     public boolean store() {
         try(BufferedWriter writer= new BufferedWriter(new FileWriter(jsonFile))) {
-                 HashMap<String, String> mapToStore = new HashMap<>();
-        for (Snowflake key : storedJson.keySet()) {
-            mapToStore.put(key.asString(), storedJson.get(key).asString());
-        }
-            jsonParser.toJson(mapToStore,writer);
+            jsonParser.toJson(listOfGuildSettings,writer);
             return true;
         } catch (IOException e) {
             log.debug("Cannot find such file");
@@ -103,30 +100,38 @@ public class GuildStorage implements Store {
         }
 
     }
-    HashMap<Snowflake,Snowflake> loadJson(){
+    void loadJson(){
         try(BufferedReader reader = new BufferedReader(new FileReader(jsonFile) )) {
-            HashMap<String, String> parsed =jsonParser.fromJson(reader, type);
-            return convertToSnowFlake(parsed);
+            ArrayList<GuildSetting> settings = jsonParser.fromJson(reader, GUILD_SETTINGS_TYPE);
+            storeReferences(settings);
         } catch (FileNotFoundException e) {
             log.warn("Cannot find file");
         } catch (IOException e) {
             log.warn("Cannot find file");
         }
-        return null;
     }
 
     /*
     Converts the json file
      */
-    private HashMap<Snowflake, Snowflake> convertToSnowFlake(HashMap<String, String> parsed) {
-        HashMap<Snowflake,Snowflake> savedChannels = new HashMap<>();
-        for (String key : parsed.keySet()) {
-            Snowflake guildID = Snowflake.of(key);
-            Snowflake channelID = Snowflake.of(parsed.get(key));
-            keyset.add(guildID);
-            savedChannels.put(guildID,channelID);
+    private void storeReferences(ArrayList<GuildSetting> parsed) {
+        for (GuildSetting settings : parsed) {
+            Snowflake guildId = convertToSnowFlake(settings.getGuildID());
+            Snowflake channelID = convertToSnowFlake(settings.getChannelID());
+            if (guildId == null || channelID == null){
+                log.warn("Channel is null");
+                continue;
+            }
+            guildObject.add(new GuildReference(guildId,channelID,settings.getRoles()));
         }
-        return savedChannels;
+    }
+
+    private Snowflake convertToSnowFlake(String guildID) {
+        if (guildID.isEmpty()){
+            log.warn("Guild is null: " + guildID);
+            return null;
+        }
+        return Snowflake.of(guildID);
     }
 
     public HashMap<Snowflake,Snowflake> getChannels() {
@@ -139,7 +144,7 @@ public class GuildStorage implements Store {
      * Creates a new instance of the guild setting based on the guild id and channel id
      * @param message
      */
-    public HashMap<Snowflake,Snowflake> addChannel(Message message) {
+    public HashMap<Snowflake, Snowflake> addChannel(Message message) {
         Optional<Snowflake> guildOptional  = message.getGuildId();
         if (message.getGuildId().isEmpty()){
             System.out.println("Guild id is null");
@@ -152,16 +157,52 @@ public class GuildStorage implements Store {
                 new GuildSetting((guildID).asString(),(message.getChannelId()).asString()));
         HashMap<Snowflake, Snowflake> map = new HashMap<>();
          map.put(guildID,message.getChannelId());
+         guildObject.add(new GuildReference(guildID,message.getChannelId()));
          syncPersistent();
          return map;
     }
 
     private void syncPersistent() {
         store();
-        storedJson  = loadJson();
     }
 
     public HashSet<Snowflake> getKeyset() {
         return keyset;
+    }
+
+    public void addRole(Message message) {
+        GuildSetting setting = getGuild(message);
+        String role = extractRole(message.getContent());
+        if (setting == null || role ==null){
+            return;
+        }
+        setting.addRole(role);
+        store();
+    }
+    /**
+     * Extracts the role based on space, and returns the role name
+     * for example !setrole admin
+     * returns the admin
+     * @param content
+     * @return
+     */
+    private String extractRole(String content) {
+        String[] splitted = content.split(" ");
+        if (splitted.length != 2){
+            return null;
+        }
+        return splitted[1];
+    }
+    private GuildSetting getGuild(Message message) {
+        for (GuildSetting settings : listOfGuildSettings){
+            if (settings.getGuildID().equals(message.getGuildId().get().asString())){
+                return settings;
+            }
+        }
+        return null;
+    }
+
+    public ArrayList<GuildSetting> getListOfGuildSettings() {
+        return listOfGuildSettings;
     }
 }

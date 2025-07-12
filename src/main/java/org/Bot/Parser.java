@@ -46,8 +46,6 @@ public class Parser {
         }
     }
 
-
-
     private ArrayList<String> checkForActiveWeathers(JsonNode weathers) {
         ArrayList<String> activeWeathers = new ArrayList<>();
         for (int i = 0 ; i < weathers.size();i++){
