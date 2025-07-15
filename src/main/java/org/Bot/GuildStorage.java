@@ -15,7 +15,6 @@ import org.storage.Store;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Optional;
 
@@ -24,17 +23,15 @@ public class GuildStorage implements Store {
     Gson jsonParser;
     String filePath = "src/main/resources/guilds.json";
     private static final Type GUILD_SETTINGS_TYPE = new TypeToken<ArrayList<GuildSetting>>(){}.getType();
-
     ArrayList<GuildSetting> listOfGuildSettings;
     File jsonFile;
-    ArrayList<GuildReference> guildObject;
+    HashSet<GuildReference> guildObject;
+    GuildReference recentlyAdded;
     void initialize(){
         jsonParser = new GsonBuilder().setPrettyPrinting().create();
         jsonFile = new File(filePath);
         listOfGuildSettings = new ArrayList<>();
-        guildObject = new ArrayList<>();
     }
-
     public boolean addData(GuildSetting setting){
         listOfGuildSettings.removeIf(e -> e.guildID.equals(setting.guildID));
         listOfGuildSettings.add(setting);
@@ -44,7 +41,6 @@ public class GuildStorage implements Store {
         listOfGuildSettings.removeIf(e-> e.guildID.equalsIgnoreCase(settings.guildID));
         return true;
     }
-
     /**
      * Will store the guild id and channel id inside the json file
      */
@@ -53,10 +49,10 @@ public class GuildStorage implements Store {
         if (!isJsonEmpty() ){
             loadJson();
         }else {
+            guildObject = new HashSet<>();
             listOfGuildSettings = new ArrayList<>();
         }
     }
-
     private void createJson() {
         try {
             jsonFile.createNewFile();
@@ -94,10 +90,10 @@ public class GuildStorage implements Store {
             log.debug("Cannot find such file");
             return false;
         }
-
     }
     void loadJson(){
         try(BufferedReader reader = new BufferedReader(new FileReader(jsonFile) )) {
+            guildObject = new HashSet<>();
             ArrayList<GuildSetting> settings = jsonParser.fromJson(reader, GUILD_SETTINGS_TYPE);
             storeReferences(settings);
         } catch (FileNotFoundException e) {
@@ -106,7 +102,6 @@ public class GuildStorage implements Store {
             log.warn("Cannot find file");
         }
     }
-
     /*
     Converts the json file
      */
@@ -121,38 +116,12 @@ public class GuildStorage implements Store {
             guildObject.add(new GuildReference(guildId,channelID,settings.getRoles()));
         }
     }
-
     private Snowflake convertToSnowFlake(String guildID) {
         if (guildID.isEmpty()){
             log.warn("Guild is null: " + guildID);
             return null;
         }
         return Snowflake.of(guildID);
-    }
-
-    /**
-     * Adds it to the channel and return a hashmap of the recently added channel
-     * Creates a new instance of the guild setting based on the guild id and channel id
-     * @param message
-     */
-    public HashMap<Snowflake, Snowflake> addChannel(Message message) {
-        Optional<Snowflake> guildOptional  = message.getGuildId();
-        if (message.getGuildId().isEmpty()){
-            System.out.println("Guild id is null");
-            return null;
-        }
-        Snowflake guildID = guildOptional.get();
-        listOfGuildSettings.add(
-                new GuildSetting((guildID).asString(),(message.getChannelId()).asString()));
-        HashMap<Snowflake, Snowflake> map = new HashMap<>();
-         map.put(guildID,message.getChannelId());
-         guildObject.add(new GuildReference(guildID,message.getChannelId()));
-         syncPersistent();
-         return map;
-    }
-
-    private void syncPersistent() {
-        store();
     }
 
     public void addRole(Message message) {
@@ -186,8 +155,49 @@ public class GuildStorage implements Store {
         }
         return null;
     }
-
     public ArrayList<GuildSetting> getListOfGuildSettings() {
         return listOfGuildSettings;
+    }
+
+    public HashSet<GuildReference> getGuildObject() {
+        return guildObject;
+    }
+
+    public GuildReference getRecentGuild() {
+        return this.recentlyAdded;
+    }
+
+    public boolean addChannel(Message message) {
+        Optional<Snowflake> optionalGuildID = message.getGuildId();
+        if (optionalGuildID.isEmpty()){
+            return false;
+        }
+        if(!guildExists(message)){
+            addToStorage(message);
+          return true;
+        }
+        updateChannel(message);
+        return true;
+    }
+
+    private void updateChannel(Message message) {
+        guildObject.stream().findAny().get().setChannel(message.getChannelId());
+    }
+
+    private void addToStorage(Message message) {
+        Optional<Snowflake> optionalGuildID = message.getGuildId();
+        Snowflake guildIDReference = optionalGuildID.get();
+        Snowflake channelID = message.getChannelId();
+        GuildSetting temp = new GuildSetting(guildIDReference.asString(),channelID.asString());
+        addData(temp);
+        this.recentlyAdded = new GuildReference(optionalGuildID.get(),channelID);
+        store();
+    }
+
+    private boolean guildExists(Message message) {
+        //Search here
+        Optional<Snowflake> optional = message.getGuildId();
+        GuildReference temporaryReference = new GuildReference(optional.get(),message.getChannelId());
+        return guildObject.stream().anyMatch(e-> e.equals(temporaryReference));
     }
 }

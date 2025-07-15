@@ -31,6 +31,4 @@ public class GuildSetting {
         return this.channelId;
     }
 
-
-
 }

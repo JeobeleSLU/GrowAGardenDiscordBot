@@ -19,6 +19,7 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert {
     ArrayList<Item> lastStock;
     GuildStorage storedGuilds;
 
+
     public StockBot(String botToken,Obeserver obeserver) {
         this.botToken = botToken;
         this.observer = obeserver;
@@ -55,7 +56,7 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert {
 
     private void initComponents() {
         storedGuilds = new GuildStorage();
-        notifier.initComponents(storedGuilds.getChannels(),storedGuilds.getKeyset());
+        notifier.initComponents(storedGuilds);
         notifier.setDiscordGateway(gateway);
     }
 
@@ -117,9 +118,10 @@ private void sendWorld(Message message) {
      * @param message
      */
     private void setChannel(Message message) {
-        notifier.subscribeToEvent(storedGuilds.addChannel(message));
-        notifier.refreshKeys(storedGuilds.getKeyset());
-        notifier.notifyChannel(message,lastStock,gateway);
+        if (!storedGuilds.addChannel(message)){
+            return;
+        }
+    notifier.notifyChannel(message,lastStock,gateway);
     }
 
 
@@ -134,4 +136,5 @@ private void sendWorld(Message message) {
     public void nottifyWeather(ArrayList<String> weather) {
         notifier.alertWeather(weather,gateway);
     }
+
 }

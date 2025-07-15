@@ -12,20 +12,20 @@ import java.time.Instant;
 import java.util.*;
 
 public class ChannelNotifier {
-    HashMap<Snowflake, Snowflake> guildChannels;
-    HashSet<Snowflake> guildList;
+
     static int cycleCounter = 1;
     GatewayDiscordClient gateway;
     HashSet<GuildReference> guilds;
+    GuildStorage storedGuilds;
 
     public ChannelNotifier() {
-        guildChannels = new HashMap<>();
-         guildList= new HashSet<>();
          guilds =new HashSet<>();
     }
-    void initComponents(HashMap<Snowflake, Snowflake> guildChannels, HashSet<Snowflake> guildList){
-        this.guildChannels = guildChannels;
-        this.guildList = guildList;
+    void initComponents(GuildStorage storage){
+        this.storedGuilds = storage;
+        if (!storedGuilds.getGuildObject().isEmpty()){
+            guilds.addAll(storedGuilds.getGuildObject());
+        }
     };
 
     public void notifyStock(ArrayList<Item> items, GatewayDiscordClient client) {
@@ -33,6 +33,8 @@ public class ChannelNotifier {
        sendEmbed(stock,client);
     }
     public void notifyChannel(Message message, ArrayList<Item> lastStock, GatewayDiscordClient client) {
+        GuildReference recentChannel = new GuildReference(message.getGuildId().get(),message.getChannelId());
+        guilds.add(recentChannel);
         if (lastStock == null || lastStock.isEmpty()) {
             client.getChannelById(message.getChannelId())
                     .ofType(MessageChannel.class)
@@ -56,7 +58,6 @@ public class ChannelNotifier {
         fieldBuilders.put("Travelling Merchant Stock ✈️", new StringBuilder());
 
         boolean isMasterInStock = false;
-
         for (Item item : stock) {
             if ("Master Sprinkler".equals(item.displayName)) {
                 isMasterInStock = true;
@@ -96,14 +97,11 @@ public class ChannelNotifier {
         }
         return embedBuilder;
     }
-    void refreshKeys(HashSet<Snowflake> keys){
-        this.guildList = keys;
-    }
 
     public void notifyBotOnline(GatewayDiscordClient client) {
-        Flux.fromIterable(guildList)
+        Flux.fromIterable(guilds)
                 .flatMap(guildId -> {
-                    Snowflake channelId = guildChannels.get(guildId);
+                    Snowflake channelId = guildId.getChannelID();
                     return client.getChannelById(channelId)
                             .ofType(MessageChannel.class)
                             .flatMap(channel -> channel.createMessage("```I am fully online sending stocks..... 🌱```\n\n"));
@@ -126,9 +124,9 @@ public class ChannelNotifier {
     }
 
     private void sendEmbed(EmbedCreateSpec.Builder embedBuilder, GatewayDiscordClient client) {
-        Flux.fromIterable(guildList)
-                .flatMap(guildId -> {
-                    Snowflake channelId = guildChannels.get(guildId);
+        Flux.fromIterable(guilds)
+                .flatMap(guild -> {
+                    Snowflake channelId = guild.getChannelID();
                     return client.getChannelById(channelId)
                             .ofType(MessageChannel.class)
                             .flatMap(channel -> channel.createEmbed(embedBuilder.build()));
@@ -141,7 +139,6 @@ public class ChannelNotifier {
 
     public void alertWeather(ArrayList<String> weathers, GatewayDiscordClient client) {
         EmbedCreateSpec.Builder embedBuilder = EmbedCreateSpec.builder()
-
                 .title("☁️ Weather : ")
                 .color(Color.GRAY_CHATEAU)
                 .timestamp(Instant.now());
@@ -161,7 +158,6 @@ public class ChannelNotifier {
                 })
                 .subscribe();
     }
-
     private String extractWeathers(ArrayList<String> weathers) {
         StringBuilder builder = new StringBuilder();
         builder.append("[");
@@ -180,10 +176,10 @@ public class ChannelNotifier {
     }
     //Mention everyone for something
     void mentionEveryone(String Reason){
-        String mention = "@everyone";
-        Flux.fromIterable(guildList)
-                .flatMap(guildId -> {
-                    Snowflake channelId = guildChannels.get(guildId);
+        Flux.fromIterable(guilds)
+                .flatMap(guildID -> {
+                    String mention = "@";
+                    Snowflake channelId = guildID.getChannelID();
                     return gateway.getChannelById(channelId)
                             .ofType(MessageChannel.class)
                             .flatMap(channel -> channel.createMessage(mention + " "+ Reason));
@@ -195,10 +191,7 @@ public class ChannelNotifier {
     }
 
 
-    public void subscribeToEvent(HashMap<Snowflake, Snowflake> snowflakeSnowflakeHashMap) {
-        guildChannels.putAll(snowflakeSnowflakeHashMap);
-    }
-    void addAllGuild(ArrayList<GuildReference> guildToAdd){
-        guilds.addAll(guildToAdd);
+    public void syncData(GuildReference recentGuild) {
+        this.guilds.add(recentGuild);
     }
 }

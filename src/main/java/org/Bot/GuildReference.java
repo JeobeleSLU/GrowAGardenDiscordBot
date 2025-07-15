@@ -29,7 +29,6 @@ public class GuildReference {
     public ArrayList<String> getRoles() {
         return roles;
     }
-
     public Snowflake getGuildID() {
         return guildID;
     }
@@ -44,5 +43,9 @@ public class GuildReference {
     public int hashCode() {
         return Objects.hash(guildID, channelID);
     }
-}
 
+
+    public void setChannel(Snowflake channelId) {
+        this.channelID = channelId;
+    }
+}
