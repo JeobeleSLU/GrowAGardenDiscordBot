@@ -30,7 +30,7 @@ mvn clean package
 
 ```
 3️⃣ Run the Bot
-The bot requires two arguments:
+The bot requires one arguments:
 java -jar target/grow-a-garden-stock-bot.jar <BOT_TOKEN>
 ```
 
