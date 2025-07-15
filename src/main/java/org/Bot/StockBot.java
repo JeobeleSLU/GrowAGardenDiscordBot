@@ -69,7 +69,6 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
                 .subscribe(event -> {
                     Message message = event.getMessage();
                     String content = message.getContent();
-
                     if("!sendStocks".equalsIgnoreCase(content)){
                         notifier.notifyChannel(message,lastStock,gateway);
                     }else if("!setChannel".equalsIgnoreCase(content)){
@@ -131,7 +130,6 @@ private void sendWorld(Message message) {
         }
     notifier.notifyChannel(message,lastStock,gateway);
     }
-
     @Override
     public void triggerEventNotification(String message) {
         notifier.notifyMessage(message,gateway);

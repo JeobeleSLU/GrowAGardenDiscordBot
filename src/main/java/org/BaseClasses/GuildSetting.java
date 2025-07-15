@@ -36,4 +36,15 @@ public class GuildSetting {
     private boolean roleExists(String role) {
         return (roles.stream().anyMatch(e -> e.equals(role)));
     }
+
+    public void setChannelID(String channelID) {
+        this.channelId = channelID;
+    }
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof GuildReference)) return false;
+        GuildReference that = (GuildReference) obj;
+        return this.guildID.equals(that.guildID);
+    }
 }

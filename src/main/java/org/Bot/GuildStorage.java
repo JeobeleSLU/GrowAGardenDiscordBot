@@ -24,19 +24,24 @@ public class GuildStorage implements Store {
     private static final Logger log = LoggerFactory.getLogger(GuildStorage.class);
     Gson jsonParser;
     String filePath = "src/main/resources/guilds.json";
-    private static final Type GUILD_SETTINGS_TYPE = new TypeToken<ArrayList<GuildSetting>>(){}.getType();
-    ArrayList<GuildSetting> listOfGuildSettings;
+    private static final Type GUILD_SETTINGS_TYPE = new TypeToken<HashSet<GuildSetting>>(){}.getType();
+    HashSet<GuildSetting> listOfGuildSettings;
     File jsonFile;
     HashSet<GuildReference> guildObject;
     GuildReference recentlyAdded;
     void initialize(){
         jsonParser = new GsonBuilder().setPrettyPrinting().create();
         jsonFile = new File(filePath);
-        listOfGuildSettings = new ArrayList<>();
     }
-    public boolean addData(GuildSetting setting){
-        listOfGuildSettings.removeIf(e -> e.getGuildID().equals(setting.getGuildID()));
-        listOfGuildSettings.add(setting);
+    public boolean addData(GuildSetting newSetting) {
+        for (GuildSetting existing : listOfGuildSettings) {
+            if (existing.getGuildID().equals(newSetting.getGuildID())) {
+                existing.setChannelID(newSetting.getChannelID());
+                existing.getRoles().addAll(newSetting.getRoles());
+                return true;
+            }
+        }
+        listOfGuildSettings.add(newSetting);
         return true;
     }
     public boolean removeSubscription(Message message){
@@ -52,7 +57,7 @@ public class GuildStorage implements Store {
             loadJson();
         }else {
             guildObject = new HashSet<>();
-            listOfGuildSettings = new ArrayList<>();
+            listOfGuildSettings = new HashSet<>();
         }
     }
     private void createJson() {
@@ -92,11 +97,12 @@ public class GuildStorage implements Store {
             return false;
         }
     }
+
     void loadJson(){
         try(BufferedReader reader = new BufferedReader(new FileReader(jsonFile) )) {
             guildObject = new HashSet<>();
-            ArrayList<GuildSetting> settings = jsonParser.fromJson(reader, GUILD_SETTINGS_TYPE);
-            storeReferences(settings);
+            listOfGuildSettings = jsonParser.fromJson(reader, GUILD_SETTINGS_TYPE);
+            storeReferences(listOfGuildSettings);
         } catch (FileNotFoundException e) {
             log.warn("Cannot find file");
         } catch (IOException e) {
@@ -106,7 +112,7 @@ public class GuildStorage implements Store {
     /*
     Converts the json file
      */
-    private void storeReferences(ArrayList<GuildSetting> parsed) {
+    private void storeReferences(HashSet<GuildSetting> parsed) {
         for (GuildSetting settings : parsed) {
             Snowflake guildId = convertToSnowFlake(settings.getGuildID());
             Snowflake channelID = convertToSnowFlake(settings.getChannelID());
@@ -176,9 +182,6 @@ public class GuildStorage implements Store {
         }
         return null;
     }
-    public ArrayList<GuildSetting> getListOfGuildSettings() {
-        return listOfGuildSettings;
-    }
 
     public HashSet<GuildReference> getGuildObject() {
         return guildObject;
@@ -202,15 +205,38 @@ public class GuildStorage implements Store {
     }
 
     private void updateChannel(Message message) {
-        guildObject.stream().findAny().get().setChannel(message.getChannelId());
+        Optional<Snowflake> optionalGuildID = message.getGuildId();
+        if (optionalGuildID.isEmpty()) {
+            return;
+        }
+
+        Snowflake guildId = optionalGuildID.get();
+        GuildReference ref = guildObject.stream()
+                .filter(e -> e.getGuildID().equals(guildId))
+                .findFirst()
+                .orElse(null);
+
+        if (ref != null) {
+            ref.setChannel(message.getChannelId());
+            GuildSetting setting = getGuild(message);
+            if (setting != null) {
+                setting.setChannelID(message.getChannelId().asString());
+            }
+            store(); // Save the updated data
+        }
     }
     private void addToStorage(Message message) {
         Optional<Snowflake> optionalGuildID = message.getGuildId();
         Snowflake guildIDReference = optionalGuildID.get();
         Snowflake channelID = message.getChannelId();
+
+        if (!isJsonEmpty()) {
+            loadJson();
+        }
         GuildSetting temp = new GuildSetting(guildIDReference.asString(),channelID.asString());
-        addData(temp);
+        this.listOfGuildSettings.add(temp);
         this.recentlyAdded = new GuildReference(optionalGuildID.get(),channelID);
+        this.guildObject.add(this.recentlyAdded);
         store();
     }
 
