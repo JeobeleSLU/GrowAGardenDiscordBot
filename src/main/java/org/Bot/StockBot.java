@@ -7,10 +7,11 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
+import org.Console.ConsoleMessage;
 
 import java.util.ArrayList;
 
-public class StockBot implements Runnable,NotificationHandler,WeatherAlert {
+public class StockBot implements Runnable,NotificationHandler,WeatherAlert, ConsoleMessage {
     GatewayDiscordClient gateway;
     DiscordClient client;
     ChannelNotifier notifier = new ChannelNotifier();
@@ -78,12 +79,17 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert {
                     } else if ("!setRole".equalsIgnoreCase(content)) {
                         setRole(message);
                     }
-
                 });
     }
 
     private void setRole(Message message) {
-        storedGuilds.addRole(message);
+        GuildReference reference = storedGuilds.addRole(message);
+
+        if (reference == null){
+            notifier.errorAdding(message);
+        }
+        notifier.updateRole(reference);
+
     }
 
     private void sendUnknownCommand(Message message) {
@@ -124,7 +130,6 @@ private void sendWorld(Message message) {
     notifier.notifyChannel(message,lastStock,gateway);
     }
 
-
     @Override
     public void triggerEventNotification(String message) {
         notifier.notifyMessage(message,gateway);
@@ -137,4 +142,13 @@ private void sendWorld(Message message) {
         notifier.alertWeather(weather,gateway);
     }
 
+    @Override
+    public void sendMessage(String message) {
+        notifier.sendMessage(message);
+    }
+
+    @Override
+    public void mentionRoleAndSend(String message) {
+        notifier.mentionEveryone(message);
+    }
 }

@@ -15,10 +15,17 @@ public class GuildSetting {
         this.guildID = guildID;
         roles = new ArrayList<>();
     }
-    void addRole(String roleToAdd){
-        roles.add(roleToAdd);
+    public GuildSetting(String guildID,String channelId,ArrayList<String> roles) {
+        this.channelId = channelId;
+        this.guildID = guildID;
+        this.roles = roles;
     }
-
+    public void addRole(String role) {
+        if (roleExists(role)){
+            return;
+        }
+        roles.add(role);
+    }
     public ArrayList<String> getRoles() {
         return roles;
     }
@@ -30,5 +37,7 @@ public class GuildSetting {
     public String getChannelID() {
         return this.channelId;
     }
-
+    private boolean roleExists(String role) {
+        return (roles.stream().anyMatch(e -> e.equals(role)));
+    }
 }

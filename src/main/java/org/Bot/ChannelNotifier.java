@@ -7,6 +7,7 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Color;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.*;
@@ -158,6 +159,7 @@ public class ChannelNotifier {
                 })
                 .subscribe();
     }
+
     private String extractWeathers(ArrayList<String> weathers) {
         StringBuilder builder = new StringBuilder();
         builder.append("[");
@@ -178,7 +180,10 @@ public class ChannelNotifier {
     void mentionEveryone(String Reason){
         Flux.fromIterable(guilds)
                 .flatMap(guildID -> {
-                    String mention = "@";
+                    if (guildID.getRoles().isEmpty()) {
+                        return Mono.empty();
+                    }
+                    String mention = "@"+guildID.getRoles().get(0);
                     Snowflake channelId = guildID.getChannelID();
                     return gateway.getChannelById(channelId)
                             .ofType(MessageChannel.class)
@@ -193,5 +198,30 @@ public class ChannelNotifier {
 
     public void syncData(GuildReference recentGuild) {
         this.guilds.add(recentGuild);
+    }
+
+    public void errorAdding(Message message) {
+         gateway.getChannelById(message.getChannelId())
+                .ofType(MessageChannel.class)
+                .flatMap(channel ->
+                        channel.createMessage("Please set a channel first before adding a role "))
+                 .subscribe();
+    }
+
+    public void updateRole(GuildReference reference) {
+        guilds.remove(reference);
+        guilds.add(reference);
+    }
+
+
+    public void sendMessage(String message) {
+        Flux.fromIterable(guilds)
+                .flatMap(guildID -> {
+                    Snowflake channelId = guildID.getChannelID();
+                    return gateway.getChannelById(channelId)
+                            .ofType(MessageChannel.class)
+                            .flatMap(channel -> channel.createMessage(message));
+                })
+                .subscribe();
     }
 }

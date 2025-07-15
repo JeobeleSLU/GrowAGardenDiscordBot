@@ -37,15 +37,24 @@ public class GuildReference {
         if (this == obj) return true;
         if (!(obj instanceof GuildReference)) return false;
         GuildReference that = (GuildReference) obj;
-        return this.guildID.equals(guildID);
+        return this.guildID.equals(that.guildID);
     }
     @Override
     public int hashCode() {
-        return Objects.hash(guildID, channelID);
+        return Objects.hash(guildID);
     }
-
-
     public void setChannel(Snowflake channelId) {
         this.channelID = channelId;
+    }
+
+    public void addRole(String role) {
+        if (roleExists(role)){
+            return;
+        }
+        roles.add(role);
+    }
+
+    private boolean roleExists(String role) {
+        return (roles.stream().anyMatch(e -> e.equals(role)));
     }
 }

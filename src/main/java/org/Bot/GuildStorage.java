@@ -37,8 +37,8 @@ public class GuildStorage implements Store {
         listOfGuildSettings.add(setting);
         return true;
     }
-    public boolean removeSubscription(GuildSetting settings){
-        listOfGuildSettings.removeIf(e-> e.guildID.equalsIgnoreCase(settings.guildID));
+    public boolean removeSubscription(Message message){
+
         return true;
     }
     /**
@@ -76,7 +76,6 @@ public class GuildStorage implements Store {
             return true;
         }
     }
-
     /**
      * Save the Guilds inside json in a string format
      * @return
@@ -124,15 +123,35 @@ public class GuildStorage implements Store {
         return Snowflake.of(guildID);
     }
 
-    public void addRole(Message message) {
+    public GuildReference addRole(Message message) {
+        if (message.getGuildId().isEmpty()){
+            return null;
+        }
+        if (!guildExists(message)){
+            return null;
+        }
         GuildSetting setting = getGuild(message);
         String role = extractRole(message.getContent());
         if (setting == null || role ==null){
-            return;
+            return null;
         }
         setting.addRole(role);
+        GuildReference reference = getGuildReference(message);
+        if (reference == null){
+            return null;
+        }
+        reference.addRole(role);
         store();
+        return reference;
     }
+
+    private GuildReference getGuildReference(Message message) {
+        return guildObject.stream()
+                .filter(e -> e.getGuildID().equals(message.getGuildId().get()))
+                .findFirst()
+                .orElse(null); //
+    }
+
     /**
      * Extracts the role based on space, and returns the role name
      * for example !setrole admin
@@ -167,7 +186,7 @@ public class GuildStorage implements Store {
         return this.recentlyAdded;
     }
 
-    public boolean addChannel(Message message) {
+    public synchronized boolean addChannel(Message message) {
         Optional<Snowflake> optionalGuildID = message.getGuildId();
         if (optionalGuildID.isEmpty()){
             return false;
@@ -183,7 +202,6 @@ public class GuildStorage implements Store {
     private void updateChannel(Message message) {
         guildObject.stream().findAny().get().setChannel(message.getChannelId());
     }
-
     private void addToStorage(Message message) {
         Optional<Snowflake> optionalGuildID = message.getGuildId();
         Snowflake guildIDReference = optionalGuildID.get();
@@ -194,6 +212,11 @@ public class GuildStorage implements Store {
         store();
     }
 
+    /**
+     * Returns true if the guild exists inside the guildObject
+     * @param message
+     * @return
+     */
     private boolean guildExists(Message message) {
         //Search here
         Optional<Snowflake> optional = message.getGuildId();
