@@ -7,6 +7,8 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
+import org.BaseClasses.GuildReference;
+import org.BaseClasses.Item;
 import org.Console.ConsoleMessage;
 
 import java.util.ArrayList;

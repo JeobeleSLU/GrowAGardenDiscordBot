@@ -1,10 +1,7 @@
-package org.Bot;
+package org.BaseClasses;
 
-
-import net.bytebuddy.implementation.bytecode.Addition;
 
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class GuildSetting {
     String channelId;
@@ -33,7 +30,6 @@ public class GuildSetting {
     public String getGuildID() {
         return guildID;
     }
-
     public String getChannelID() {
         return this.channelId;
     }

@@ -8,6 +8,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Message;
+import org.BaseClasses.GuildReference;
+import org.BaseClasses.GuildSetting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.storage.Store;
@@ -33,7 +35,7 @@ public class GuildStorage implements Store {
         listOfGuildSettings = new ArrayList<>();
     }
     public boolean addData(GuildSetting setting){
-        listOfGuildSettings.removeIf(e -> e.guildID.equals(setting.guildID));
+        listOfGuildSettings.removeIf(e -> e.getGuildID().equals(setting.getGuildID()));
         listOfGuildSettings.add(setting);
         return true;
     }

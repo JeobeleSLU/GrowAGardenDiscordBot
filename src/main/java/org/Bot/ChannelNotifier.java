@@ -6,6 +6,8 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Color;
+import org.BaseClasses.GuildReference;
+import org.BaseClasses.Item;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -60,7 +62,7 @@ public class ChannelNotifier {
 
         boolean isMasterInStock = false;
         for (Item item : stock) {
-            if ("Master Sprinkler".equals(item.displayName)) {
+            if ("Master Sprinkler".equals(item.getDisplayName())) {
                 isMasterInStock = true;
             }
 
@@ -74,8 +76,8 @@ public class ChannelNotifier {
 
             StringBuilder field = fieldBuilders.get(fieldKey);
             field.append(item.getEmoji()).append(" ")
-                    .append(item.displayName)
-                    .append(" x").append(item.quantity).append("\n");
+                    .append(item.getDisplayName())
+                    .append(" x").append(item.getQuantity()).append("\n");
         }
 
         EmbedCreateSpec.Builder embedBuilder = EmbedCreateSpec.builder()

@@ -1,4 +1,4 @@
-package org.Bot;
+package org.BaseClasses;
 
 import discord4j.common.util.Snowflake;
 

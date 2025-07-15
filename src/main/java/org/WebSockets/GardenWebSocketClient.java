@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.Bot.Item;
+import org.BaseClasses.Item;
 import org.Bot.Obeserver;
 import org.Bot.Parser;
 import org.Bot.StockBot;
@@ -14,16 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.security.Principal;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
 
 public class GardenWebSocketClient implements Runnable, Obeserver {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(GardenWebSocketClient.class);
