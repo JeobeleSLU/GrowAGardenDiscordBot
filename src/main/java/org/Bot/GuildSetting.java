@@ -4,6 +4,7 @@ package org.Bot;
 import net.bytebuddy.implementation.bytecode.Addition;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class GuildSetting {
     String channelId;
@@ -29,4 +30,7 @@ public class GuildSetting {
     public String getChannelID() {
         return this.channelId;
     }
+
+
+
 }

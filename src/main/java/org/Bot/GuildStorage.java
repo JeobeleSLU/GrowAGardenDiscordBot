@@ -3,7 +3,6 @@ Author: Turtle :)
  */
 package org.Bot;
 
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -22,20 +21,17 @@ import java.util.Optional;
 
 public class GuildStorage implements Store {
     private static final Logger log = LoggerFactory.getLogger(GuildStorage.class);
-    HashMap<Snowflake, Snowflake> storedJson;
     Gson jsonParser;
     String filePath = "src/main/resources/guilds.json";
     private static final Type GUILD_SETTINGS_TYPE = new TypeToken<ArrayList<GuildSetting>>(){}.getType();
 
     ArrayList<GuildSetting> listOfGuildSettings;
-    HashSet<Snowflake> keyset;
     File jsonFile;
     ArrayList<GuildReference> guildObject;
     void initialize(){
         jsonParser = new GsonBuilder().setPrettyPrinting().create();
         jsonFile = new File(filePath);
         listOfGuildSettings = new ArrayList<>();
-        keyset = new HashSet<>();
         guildObject = new ArrayList<>();
     }
 
@@ -57,7 +53,7 @@ public class GuildStorage implements Store {
         if (!isJsonEmpty() ){
             loadJson();
         }else {
-            storedJson = new HashMap<>();
+            listOfGuildSettings = new ArrayList<>();
         }
     }
 
@@ -134,11 +130,6 @@ public class GuildStorage implements Store {
         return Snowflake.of(guildID);
     }
 
-    public HashMap<Snowflake,Snowflake> getChannels() {
-        return this.storedJson;
-    }
-
-
     /**
      * Adds it to the channel and return a hashmap of the recently added channel
      * Creates a new instance of the guild setting based on the guild id and channel id
@@ -151,8 +142,6 @@ public class GuildStorage implements Store {
             return null;
         }
         Snowflake guildID = guildOptional.get();
-        storedJson.put(guildID,message.getChannelId());
-        keyset.add(guildID);
         listOfGuildSettings.add(
                 new GuildSetting((guildID).asString(),(message.getChannelId()).asString()));
         HashMap<Snowflake, Snowflake> map = new HashMap<>();
@@ -164,10 +153,6 @@ public class GuildStorage implements Store {
 
     private void syncPersistent() {
         store();
-    }
-
-    public HashSet<Snowflake> getKeyset() {
-        return keyset;
     }
 
     public void addRole(Message message) {
