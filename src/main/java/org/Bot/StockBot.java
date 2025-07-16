@@ -10,10 +10,13 @@ import discord4j.gateway.intent.IntentSet;
 import org.BaseClasses.GuildReference;
 import org.BaseClasses.Item;
 import org.Console.ConsoleMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
 public class StockBot implements Runnable,NotificationHandler,WeatherAlert, ConsoleMessage {
+    private static final Logger log = LoggerFactory.getLogger(StockBot.class);
     GatewayDiscordClient gateway;
     DiscordClient client;
     ChannelNotifier notifier = new ChannelNotifier();
@@ -78,6 +81,7 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
                     } else if ("!ping".equalsIgnoreCase(content)) {
                         sendPong(message);
                     } else if ("!setRole".equalsIgnoreCase(content)) {
+                        System.out.println("setting roles");
                         setRole(message);
                     }
                 });
@@ -85,12 +89,13 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
 
     private void setRole(Message message) {
         GuildReference reference = storedGuilds.addRole(message);
-
         if (reference == null){
             notifier.errorAdding(message);
+            log.warn("Cannot add role");
+            System.out.println("cannot add role");
         }
         notifier.updateRole(reference);
-
+        System.out.println("Role added");
     }
 
     private void sendUnknownCommand(Message message) {

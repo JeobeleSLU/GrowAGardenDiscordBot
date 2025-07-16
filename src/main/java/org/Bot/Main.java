@@ -9,7 +9,5 @@ public class Main {
     GardenWebSocketClient client = new GardenWebSocketClient();
      StockBot bot = new StockBot(args[0],client);
      bot.run();
-        Thread consoleThread = new Thread(new Console(bot));
-        consoleThread.start();
     }
 }

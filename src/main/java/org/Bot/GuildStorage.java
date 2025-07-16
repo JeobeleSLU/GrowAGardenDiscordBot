@@ -133,22 +133,27 @@ public class GuildStorage implements Store {
 
     public GuildReference addRole(Message message) {
         if (message.getGuildId().isEmpty()){
+            log.warn("Guild id is empty");
             return null;
         }
         if (!guildExists(message)){
+            log.warn("Guild does not exists");
             return null;
         }
         GuildSetting setting = getGuild(message);
         String role = extractRole(message.getContent());
         if (setting == null || role ==null){
+            log.warn("Cannot extract role or settings");
             return null;
+
         }
-        setting.addRole(role);
+        setSettingReference(message,role);
+        setRoleReference(message,role);
         GuildReference reference = getGuildReference(message);
         if (reference == null){
+            log.warn("Reference is null");
             return null;
         }
-        reference.addRole(role);
         store();
         return reference;
     }
@@ -168,12 +173,34 @@ public class GuildStorage implements Store {
      * @return
      */
     private String extractRole(String content) {
-        String[] splitted = content.split(" ");
+       
+        String[] splitted = content.trim().split(" ");
         if (splitted.length != 2){
             return null;
         }
         return splitted[1];
     }
+    boolean setSettingReference(Message message, String role ) {
+        for (GuildSetting settings : listOfGuildSettings){
+            if (settings.getGuildID().equals(message.getGuildId().get().asString())){
+                settings.addRole(role);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean setRoleReference(Message message,String role) {
+        for (GuildReference reference : guildObject){
+            if (reference.getGuildID().equals(message.getGuildId())){
+                reference.addRole(role);
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     private GuildSetting getGuild(Message message) {
         for (GuildSetting settings : listOfGuildSettings){
             if (settings.getGuildID().equals(message.getGuildId().get().asString())){
@@ -246,9 +273,10 @@ public class GuildStorage implements Store {
      * @return
      */
     private boolean guildExists(Message message) {
-        //Search here
         Optional<Snowflake> optional = message.getGuildId();
-        GuildReference temporaryReference = new GuildReference(optional.get(),message.getChannelId());
-        return guildObject.stream().anyMatch(e-> e.equals(temporaryReference));
+        if (optional.isEmpty()) return false;
+
+        Snowflake guildId = optional.get();
+        return guildObject.stream().anyMatch(e -> e.getGuildID().equals(guildId));
     }
 }

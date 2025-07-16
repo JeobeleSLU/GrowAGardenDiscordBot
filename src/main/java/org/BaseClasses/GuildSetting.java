@@ -36,7 +36,6 @@ public class GuildSetting {
     private boolean roleExists(String role) {
         return (roles.stream().anyMatch(e -> e.equals(role)));
     }
-
     public void setChannelID(String channelID) {
         this.channelId = channelID;
     }
