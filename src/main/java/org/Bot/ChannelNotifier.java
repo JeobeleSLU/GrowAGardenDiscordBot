@@ -8,31 +8,41 @@ import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Color;
 import org.BaseClasses.GuildReference;
 import org.BaseClasses.Item;
+import org.Utiilities.IStock;
+import org.Utiilities.MessageBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.*;
 
-public class ChannelNotifier {
-
+public class ChannelNotifier implements IStock {
+    boolean isTravellingMerchantPresent = false;
     static int cycleCounter = 1;
     GatewayDiscordClient gateway;
     HashSet<GuildReference> guilds;
     GuildStorage storedGuilds;
+    boolean isMasterInStock= false;
+    MessageBuilder messageService;
 
     public ChannelNotifier() {
          guilds =new HashSet<>();
     }
     void initComponents(GuildStorage storage){
         this.storedGuilds = storage;
+        this.messageService = new MessageBuilder(this);
         if (!storedGuilds.getGuildObject().isEmpty()){
             guilds.addAll(storedGuilds.getGuildObject());
         }
+
     };
 
     public void notifyStock(ArrayList<Item> items, GatewayDiscordClient client) {
-        EmbedCreateSpec.Builder stock = getStockMessage(items);
+        EmbedCreateSpec.Builder stock = messageService.getStockMessage(items);
+        if (isMasterInStock){
+            mentionEveryone("Master in stock!");
+        }
        sendEmbed(stock,client);
     }
     public void notifyChannel(Message message, ArrayList<Item> lastStock, GatewayDiscordClient client) {
@@ -45,7 +55,7 @@ public class ChannelNotifier {
                     .subscribe();
             return;
         }
-        EmbedCreateSpec stock = getStockMessage(lastStock).build();
+        EmbedCreateSpec stock = messageService.getStockMessage(lastStock).build();
         client.getChannelById(message.getChannelId())
                 .ofType(MessageChannel.class)
                 .flatMapMany(channel ->channel.createMessage(stock)
@@ -53,53 +63,6 @@ public class ChannelNotifier {
                 .subscribe();
         }
 
-    private EmbedCreateSpec.Builder getStockMessage(ArrayList<Item> stock) {
-        Map<String, StringBuilder> fieldBuilders = new LinkedHashMap<>();
-        fieldBuilders.put("Seed Stock 🌱", new StringBuilder());
-        fieldBuilders.put("Gear Equipment Stock 🔧", new StringBuilder());
-        fieldBuilders.put("Egg Stock 🥚", new StringBuilder());
-        fieldBuilders.put("Travelling Merchant Stock ✈️", new StringBuilder());
-
-        boolean isMasterInStock = false;
-        for (Item item : stock) {
-            if ("Master Sprinkler".equals(item.getDisplayName())) {
-                isMasterInStock = true;
-            }
-
-            String itemType = item.getItemType();
-            String fieldKey = switch (itemType) {
-                case "Gear" -> "Gear Equipment Stock 🔧";
-                case "Egg" -> "Egg Stock 🥚";
-                case "Travelling Merchant" -> "Travelling Merchant Stock ✈️";
-                default -> "Seed Stock 🌱";
-            };
-
-            StringBuilder field = fieldBuilders.get(fieldKey);
-            field.append(item.getEmoji()).append(" ")
-                    .append(item.getDisplayName())
-                    .append(" x").append(item.getQuantity()).append("\n");
-        }
-
-        EmbedCreateSpec.Builder embedBuilder = EmbedCreateSpec.builder()
-                .title("📦 Stock Report")
-                .color(Color.GRAY_CHATEAU)
-                .timestamp(Instant.now());
-
-        // Add only non-empty stock fields as inline
-        for (Map.Entry<String, StringBuilder> entry : fieldBuilders.entrySet()) {
-            String value = entry.getValue().toString();
-            if (entry.getValue().isEmpty()){
-                continue;
-            }
-            embedBuilder.addField(entry.getKey(), " " + value ,true);
-        }
-        // Alert field (non-inline) if Master Sprinkler is found
-        if (isMasterInStock) {
-            embedBuilder.addField("🔥 Alert", "@everyone Master Sprinkler is in stock!", false);
-            mentionEveryone("Master Sprinkler is in stock!");
-        }
-        return embedBuilder;
-    }
 
     public void notifyBotOnline(GatewayDiscordClient client) {
         Flux.fromIterable(guilds)
@@ -113,28 +76,34 @@ public class ChannelNotifier {
     }
 
     public void notifyMessage(String message, GatewayDiscordClient client) {
-        EmbedCreateSpec.Builder embedBuilder = EmbedCreateSpec.builder()
-                .title("🛎️ Notification: ")
-                .color(Color.GRAY_CHATEAU)
-                .timestamp(Instant.now());
-        embedBuilder.addField("Notification",message,true);
-        if (message.equalsIgnoreCase("The Traveling Merchant has arrived")){
+        EmbedCreateSpec.Builder embedBuilder = messageService.notifyMessage(message);
+
+        if (isTravellingMerchantPresent){
             mentionEveryone(message);
         }
         System.out.println("Cycle: " + cycleCounter);
         cycleCounter++;
         sendEmbed(embedBuilder,client);
     }
+    Stack<Snowflake> getGuilds(){
+        Stack<Snowflake> channels = new Stack<>();
+        guilds.stream()
+                .map(GuildReference::getChannelID)
+                .filter(Objects::nonNull)
+                .forEach(channels::add);
+        return channels;
+    }
 
     private void sendEmbed(EmbedCreateSpec.Builder embedBuilder, GatewayDiscordClient client) {
-        Flux.fromIterable(guilds)
-                .flatMap(guild -> {
-                    Snowflake channelId = guild.getChannelID();
-                    return client.getChannelById(channelId)
-                            .ofType(MessageChannel.class)
-                            .flatMap(channel -> channel.createEmbed(embedBuilder.build()));
-                })
+        Stack<Snowflake> channels = getGuilds();
+        while (!channels.isEmpty()) {
+            Snowflake channelId = channels.pop();
+        client.getChannelById(channelId)
+                .ofType(MessageChannel.class)
+                .flatMap(channel -> channel.createEmbed(embedBuilder.build()))
+                .doOnError(error -> System.err.println("Failed to send embed: " + error.getMessage()))
                 .subscribe();
+    }
     }
     public void sendToDevConsoles(Exception ex, GatewayDiscordClient gateway) {
 
@@ -151,15 +120,7 @@ public class ChannelNotifier {
             String extractedString = extractWeathers(weathers);
             embedBuilder.addField("Current Weather: ", extractedString, true);
         }
-
-        Flux.fromIterable(guilds)
-                .flatMap(guildId -> {
-                    Snowflake channelId =guildId.getChannelID();
-                    return client.getChannelById(channelId)
-                            .ofType(MessageChannel.class)
-                            .flatMap(channel -> channel.createEmbed(embedBuilder.build()));
-                })
-                .subscribe();
+        sendEmbed(embedBuilder,this.gateway);
     }
 
     private String extractWeathers(ArrayList<String> weathers) {
@@ -178,6 +139,7 @@ public class ChannelNotifier {
         }
         return builder.toString();
     }
+
     //Mention everyone for something
     void mentionEveryone(String Reason){
         Flux.fromIterable(guilds)
@@ -192,14 +154,10 @@ public class ChannelNotifier {
                             .flatMap(channel -> channel.createMessage(mention + " "+ Reason));
                 })
                 .subscribe();
+
     }
     public void setDiscordGateway(GatewayDiscordClient gateway) {
         this.gateway = gateway;
-    }
-
-
-    public void syncData(GuildReference recentGuild) {
-        this.guilds.add(recentGuild);
     }
 
     public void errorAdding(Message message) {
@@ -214,8 +172,6 @@ public class ChannelNotifier {
         guilds.remove(reference);
         guilds.add(reference);
     }
-
-
     public void sendMessage(String message) {
         Flux.fromIterable(guilds)
                 .flatMap(guildID -> {
@@ -226,4 +182,22 @@ public class ChannelNotifier {
                 })
                 .subscribe();
     }
+
+    @Override
+    public void setMasterInStock(boolean isMasterInStock) {
+        this.isMasterInStock = isMasterInStock;
+    }
+
+    @Override
+    public void setTravellingMerchant(boolean isTravellingMerchantPresent) {
+        this.isTravellingMerchantPresent = isTravellingMerchantPresent;
+
+    }
+
+    @Override
+    public void reset() {
+        this.isTravellingMerchantPresent = false ;
+        this.isMasterInStock = false ;
+    }
+
 }

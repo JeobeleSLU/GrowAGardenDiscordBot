@@ -71,7 +71,12 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
         gateway.on(MessageCreateEvent.class)
                 .subscribe(event -> {
                     Message message = event.getMessage();
+                    //Early return so that it would not get processed
                     String content = message.getContent();
+                    if('!' != content.charAt(0)){
+                        return;
+                    }
+
                     if("!sendStocks".equalsIgnoreCase(content)){
                         notifier.notifyChannel(message,lastStock,gateway);
                     }else if("!setChannel".equalsIgnoreCase(content)){
@@ -80,7 +85,7 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
                         sendWorld(message);
                     } else if ("!ping".equalsIgnoreCase(content)) {
                         sendPong(message);
-                    } else if ("!setRole".equalsIgnoreCase(content)) {
+                    } else if ("!setRole".contains(content)) {
                         System.out.println("setting roles");
                         setRole(message);
                     }
