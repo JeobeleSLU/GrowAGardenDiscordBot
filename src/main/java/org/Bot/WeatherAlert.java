@@ -1,9 +1,9 @@
 package org.Bot;
 
-import discord4j.core.GatewayDiscordClient;
+import org.BaseClasses.Weather;
 
-import java.util.ArrayList;
+import java.util.Stack;
 
 public interface WeatherAlert {
-    void nottifyWeather(ArrayList<String> weathers);
+    void nottifyWeather(Stack<Weather> weathers);
 }

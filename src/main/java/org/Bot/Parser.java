@@ -4,15 +4,18 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.BaseClasses.Item;
+import org.BaseClasses.Weather;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Stack;
 
 public class Parser {
     ObjectMapper objectMapper;
     JsonNode json;
     final String[] ARRAY_OF_ITEMS = {"seed_stock","gear_stock","egg_stock","travelingmerchant_stock"};
     final String[] ARRAY_OF_ITEM_TYPES = {"Seed","Gear","Egg","Travelling Merchant"};
+    final String[] WEATHER_NODES = {"start_duration_unix","end_duration_unix","duration","weather_id","weather_name"};
     final String[] EMOJIS = {"🌱", "🛠️", "🥚","✈️"};
     NotificationHandler bot;
     WeatherAlert weather;
@@ -39,7 +42,7 @@ public class Parser {
         if (json.has("weather")) {
             JsonNode weatherArray = json.get("weather");
             if (weatherArray != null && weatherArray.isArray() && !weatherArray.isEmpty()) {
-                ArrayList<String> activeWeather = checkForActiveWeathers(weatherArray);
+                Stack<Weather> activeWeather = checkForActiveWeathers(weatherArray);
                 if (!activeWeather.isEmpty()) {
                     weather.nottifyWeather(activeWeather);
                 }
@@ -47,18 +50,36 @@ public class Parser {
         }
     }
 
-    private ArrayList<String> checkForActiveWeathers(JsonNode weathers) {
-        ArrayList<String> activeWeathers = new ArrayList<>();
+    private Stack<Weather> checkForActiveWeathers(JsonNode weathers) {
+        Stack<Weather> weatherStack = new Stack<>();
         for (int i = 0 ; i < weathers.size();i++){
             JsonNode node = weathers.get(i);
             if (node.get("active").asBoolean()){
+                Weather tempWeather = extractWeather(node);
+                weatherStack.add(tempWeather);
                 System.out.println("An active weather is occuring");
-                activeWeathers.add(node.get("weather_name").asText());
             }
         }
-        return activeWeathers;
+        return weatherStack;
     }
 
+    //Extract weather as a weather object instead of the weather string
+    private Weather extractWeather(JsonNode node) {
+        ArrayList<String> attributes = new ArrayList<>();
+        for (int i = 0; i < WEATHER_NODES.length;i++){
+            attributes.add(node.get(WEATHER_NODES[i]).asText());
+        }
+        if (attributes.size() != 5 ){
+            return null;
+        }
+        long start = Long.parseLong(attributes.get(0));
+        long end = Long.parseLong(attributes.get(1));
+        long duration = Long.parseLong(attributes.get(2));
+        String weatherID = attributes.get(3);
+        String weatherName = attributes.get(4);
+
+        return new Weather(start,end,duration,weatherID,weatherName);
+    }
     private boolean validateTime(long start, long end) {
         long currentTime = Instant.now().getEpochSecond();
         return currentTime >= start && currentTime < end;

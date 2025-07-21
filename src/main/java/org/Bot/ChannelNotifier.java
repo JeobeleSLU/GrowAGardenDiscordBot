@@ -8,13 +8,13 @@ import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Color;
 import org.BaseClasses.GuildReference;
 import org.BaseClasses.Item;
+import org.BaseClasses.Weather;
 import org.Utiilities.IStock;
 import org.Utiilities.MessageBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.*;
 
 public class ChannelNotifier implements IStock {
@@ -63,7 +63,6 @@ public class ChannelNotifier implements IStock {
                 .subscribe();
         }
 
-
     public void notifyBotOnline(GatewayDiscordClient client) {
         Flux.fromIterable(guilds)
                 .flatMap(guildId -> {
@@ -109,34 +108,35 @@ public class ChannelNotifier implements IStock {
 
     }
 
-    public void alertWeather(ArrayList<String> weathers, GatewayDiscordClient client) {
+    public void alertWeather(Stack<Weather> weatherStack, GatewayDiscordClient client) {
         EmbedCreateSpec.Builder embedBuilder = EmbedCreateSpec.builder()
                 .title("☁️ Weather : ")
                 .color(Color.GRAY_CHATEAU)
                 .timestamp(Instant.now());
-        if (weathers.size() == 1){
-            embedBuilder.addField("Current Weather: ", weathers.get(0),true);
+        if (weatherStack.size() == 1){
+            embedBuilder.addField("Current Weather: ", weatherStack.pop().getWeatherName(),true);
         }else {
-            String extractedString = extractWeathers(weathers);
+            String extractedString = extractWeathers(weatherStack);
             embedBuilder.addField("Current Weather: ", extractedString, true);
         }
         sendEmbed(embedBuilder,this.gateway);
     }
 
-    private String extractWeathers(ArrayList<String> weathers) {
+    private String extractWeathers(Stack<Weather> weathers) {
         StringBuilder builder = new StringBuilder();
         builder.append("[");
-        for (int i = 0 ; i < weathers.size(); i++){
-
-            if (i == weathers.size() -1 ){
-                builder.append("]");
-                break;
+        while (!weathers.empty()){
+            Weather weather = weathers.pop();
+            if (weather == null){
+                continue;
             }
-            builder.append(weathers.get(i));
-            if (i != weathers.size()- 2){
-                builder.append(" + ");
+            if (weathers.size() != 1){
+                builder.append(weather.getWeatherName()).append(" + ");
+            }else{
+                builder.append(weather.getWeatherName());
             }
         }
+        builder.append("]");
         return builder.toString();
     }
 

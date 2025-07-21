@@ -9,11 +9,13 @@ import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
 import org.BaseClasses.GuildReference;
 import org.BaseClasses.Item;
+import org.BaseClasses.Weather;
 import org.Console.ConsoleMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Stack;
 
 public class StockBot implements Runnable,NotificationHandler,WeatherAlert, ConsoleMessage {
     private static final Logger log = LoggerFactory.getLogger(StockBot.class);
@@ -148,7 +150,7 @@ private void sendWorld(Message message) {
         notifier.sendToDevConsoles(ex,gateway);
     }
     @Override
-    public void nottifyWeather(ArrayList<String> weather) {
+    public void nottifyWeather(Stack<Weather> weather) {
         notifier.alertWeather(weather,gateway);
     }
 
