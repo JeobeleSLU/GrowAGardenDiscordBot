@@ -3,7 +3,7 @@ package org.Commands;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
 
-public class SendStockToChannel implements ICommand{
+public class SendStockToChannel extends AbstractCommand{
     @Override
     public void execute(Message message, GatewayDiscordClient client) {
 

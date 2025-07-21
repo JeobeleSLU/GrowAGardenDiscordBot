@@ -39,15 +39,20 @@ public class Parser {
     }
 
     public void getWeather(JsonNode json) {
-        if (json.has("weather")) {
-            JsonNode weatherArray = json.get("weather");
-            if (weatherArray != null && weatherArray.isArray() && !weatherArray.isEmpty()) {
-                Stack<Weather> activeWeather = checkForActiveWeathers(weatherArray);
-                if (!activeWeather.isEmpty()) {
-                    weather.nottifyWeather(activeWeather);
-                }
-            }
+        if(!json.has("weather")){
+            return;
         }
+            JsonNode weatherArray = json.get("weather");
+        if (isValidWeatherArray(weatherArray)) return;
+
+        Stack<Weather> activeWeather = checkForActiveWeathers(weatherArray);
+        if (!activeWeather.isEmpty()) {
+                    weather.nottifyWeather(activeWeather);
+            }
+    }
+
+    private boolean isValidWeatherArray(JsonNode weatherArray) {
+        return weatherArray == null && !weatherArray.isArray() && weatherArray.isEmpty();
     }
 
     private Stack<Weather> checkForActiveWeathers(JsonNode weathers) {
@@ -77,7 +82,6 @@ public class Parser {
         long duration = Long.parseLong(attributes.get(2));
         String weatherID = attributes.get(3);
         String weatherName = attributes.get(4);
-
         return new Weather(start,end,duration,weatherID,weatherName);
     }
     private boolean validateTime(long start, long end) {
@@ -100,7 +104,6 @@ public class Parser {
             }
         }
     }
-
     private ArrayList<Item> printMessage() {
         ArrayList<Item> items = new ArrayList<>();
 
@@ -130,7 +133,6 @@ public class Parser {
 
         return items;
     }
-
     boolean isValidItem(JsonNode item) {
         return item.hasNonNull("item_id")
                 && item.hasNonNull("display_name")

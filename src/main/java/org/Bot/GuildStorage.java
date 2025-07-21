@@ -16,6 +16,7 @@ import org.storage.Store;
 
 import java.io.*;
 import java.lang.reflect.Type;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
@@ -23,16 +24,39 @@ import java.util.Optional;
 public class GuildStorage implements Store {
     private static final Logger log = LoggerFactory.getLogger(GuildStorage.class);
     Gson jsonParser;
-    String filePath = "src/main/resources/guilds.json";
+    String env = System.getProperty("env", "dev");
+    String filePath;
     private static final Type GUILD_SETTINGS_TYPE = new TypeToken<HashSet<GuildSetting>>(){}.getType();
     HashSet<GuildSetting> listOfGuildSettings;
     File jsonFile;
     HashSet<GuildReference> guildObject;
     GuildReference recentlyAdded;
     void initialize(){
+        try {
+            getEnvinronment();
+
+        } catch (URISyntaxException e) {
+            System.out.println("cant get uri");
+        }
         jsonParser = new GsonBuilder().setPrettyPrinting().create();
         jsonFile = new File(filePath);
     }
+
+    private void getEnvinronment() throws URISyntaxException {
+        if ("prod".equalsIgnoreCase(env)){
+            String jarDir = new File(GuildStorage.class
+                    .getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .toURI())
+                    .getParent();
+            File file = new File(jarDir,"guilds.json");
+            filePath = file.getAbsolutePath();
+        }else {
+            filePath = "src/main/resources/guilds.json";
+        }
+    }
+
     public boolean addData(GuildSetting newSetting) {
         for (GuildSetting existing : listOfGuildSettings) {
             if (existing.getGuildID().equals(newSetting.getGuildID())) {

@@ -114,17 +114,26 @@ public class ChannelNotifier implements IStock {
                 .color(Color.GRAY_CHATEAU)
                 .timestamp(Instant.now());
         if (weatherStack.size() == 1){
-            embedBuilder.addField("Current Weather: ", weatherStack.pop().getWeatherName(),true);
+            Weather weather = weatherStack.pop();
+            embedBuilder.addField("Current Weather: ",weather.getWeatherName(),true);
+            String start = formatDiscordTimestamp(weather.getTimeStarted());
+            String end = formatDiscordTimestamp(weather.getTimeEnded());
+            embedBuilder.addField("Start Time:  ",start,false);
+            embedBuilder.addField("End time :  ",end,false);
         }else {
             String extractedString = extractWeathers(weatherStack);
             embedBuilder.addField("Current Weather: ", extractedString, true);
         }
         sendEmbed(embedBuilder,this.gateway);
+
+    }
+    private String formatDiscordTimestamp(long epochMillis) {
+        return "<t:" + epochMillis + ":F>"; // ":F" = full date and time
     }
 
     private String extractWeathers(Stack<Weather> weathers) {
         StringBuilder builder = new StringBuilder();
-        builder.append("[");
+        builder.append("[ ");
         while (!weathers.empty()){
             Weather weather = weathers.pop();
             if (weather == null){
