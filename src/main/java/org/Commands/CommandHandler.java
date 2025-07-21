@@ -34,7 +34,7 @@ public class CommandHandler {
         this.setChannel = new SetChannel();
     }
 
-    ICommand getCommand(String content){
+   public ICommand getCommand(String content){
         return commands.get(content);
     }
 }
