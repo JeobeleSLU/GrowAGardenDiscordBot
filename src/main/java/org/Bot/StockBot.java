@@ -75,9 +75,8 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
                     Message message = event.getMessage();
                     //Early return so that it would not get processed
                     String content = message.getContent();
-                    if('!' != content.charAt(0)){
-                        return;
-                    }
+                    if (content.isEmpty()) return;
+                    if('!' != content.charAt(0)) return;
 
                     if("!sendStocks".equalsIgnoreCase(content)){
                         notifier.notifyChannel(message,lastStock,gateway);

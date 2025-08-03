@@ -16,7 +16,7 @@ public class Parser {
     final String[] ARRAY_OF_ITEMS = {"seed_stock","gear_stock","egg_stock","travelingmerchant_stock"};
     final String[] ARRAY_OF_ITEM_TYPES = {"Seed","Gear","Egg","Travelling Merchant"};
     final String[] WEATHER_NODES = {"start_duration_unix","end_duration_unix","duration","weather_id","weather_name"};
-    final String[] EMOJIS = {"🌱", "🛠️", "🥚","✈️"};
+    final String[] EMOJIS = {"🌱", "🛠️", "🥚","✈w️"};
     NotificationHandler bot;
     WeatherAlert weather;
     String previousWeather = "";
@@ -28,6 +28,8 @@ public class Parser {
     public void init(){
         this.objectMapper = new ObjectMapper();
     }
+
+
     public ArrayList<Item> parseMessage(String message){
         try {
             this.json = objectMapper.readTree(message);

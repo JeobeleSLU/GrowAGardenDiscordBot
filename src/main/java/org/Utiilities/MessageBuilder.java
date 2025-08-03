@@ -57,6 +57,7 @@ public class MessageBuilder {
             }
             embedBuilder.addField(entry.getKey(), " " + value ,true);
         }
+
         // Alert field (non-inline) if Master Sprinkler is found
         if (isMasterInStock) {
             embedBuilder.addField("🔥 Alert", "@everyone Master Sprinkler is in stock!", false);

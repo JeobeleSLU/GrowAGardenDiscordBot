@@ -11,15 +11,15 @@ import java.util.Stack;
 public class CommandHandler {
     private AbstractCommand sendStockToChannel;
     private AbstractCommand setChannel;
-    private AbstractCommand brodcastStock;
+    private BrodcastToChannel brodcastStock;
     Stack<AbstractCommand> commandStack;
     MessageBuilder builder;
 
     HashMap<String,ICommand> commands;
     void initComponents(){
-        this.builder = new MessageBuilder();
-        this.commandStack = new Stack<>();
         this.commands = new HashMap<>();
+        this.commandStack = new Stack<>();
+        this.builder = new MessageBuilder(brodcastStock);
         initCommands();
         initKeys();
         commands.put("setChannel",setChannel);

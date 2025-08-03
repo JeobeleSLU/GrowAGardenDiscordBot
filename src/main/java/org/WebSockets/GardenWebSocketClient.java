@@ -30,14 +30,18 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
     String url;
     boolean isEggTime = false;
     // 60 seconds in 1 minute, 30 minutes in alf an hour
-    int secondsInHalfHour = 60 * 30;
+    private static final int ALLOWED_DRIFT_SECONDS = 5;
+    private static final int EGG_TIME_INTERVAL_SECONDS = 1800;
+    String key;
 
-    public GardenWebSocketClient() {
+    public GardenWebSocketClient(String JstudioKey) {
+        this.key= JstudioKey;
     }
 
     private void connect(String url) throws URISyntaxException {
-        WebSocketClient client = new WebSocketClient(new URI(url)) {
-
+        Map<String, String> httpHeaders = new HashMap<>();
+        httpHeaders.put("jstudio-key", key);
+          WebSocketClient client = new WebSocketClient(new URI(url), httpHeaders) {
             @Override
             public void onOpen(ServerHandshake handshake) {
                 System.out.println("SocketThread:WebSocket connection established.");
@@ -57,9 +61,9 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
                 if (message.isEmpty()) return;
                 //If its egg time, set egg time to true
                 if (isEggTime() ||isEggTime ){
-                    isEggTime = true;
-                    messageBuffer.add(message);
-                    if (messageBuffer.size() < 3){
+                        isEggTime = true;
+                        messageBuffer.add(message);
+                        if (messageBuffer.size() < 3){
                         return;
                     }
                 }else {
@@ -103,7 +107,9 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
 
     private boolean isEggTime() {
         //If it's divisible by 1800 or 30 mins its egg time
-        return Instant.now().getEpochSecond() % secondsInHalfHour == 0;
+        long now = Instant.now().getEpochSecond();
+        long remainder = now % EGG_TIME_INTERVAL_SECONDS;
+        return remainder <= ALLOWED_DRIFT_SECONDS || remainder >= (EGG_TIME_INTERVAL_SECONDS - ALLOWED_DRIFT_SECONDS);
     }
 
     private void inspectMessage(String message) {
@@ -125,7 +131,6 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
             //Do something here
         }
     }
-
     private String appendJsons(List<String> messageBuffer) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode combined = mapper.createObjectNode();
@@ -139,7 +144,6 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
                 System.err.println("Invalid JSON during merge: " + e.getMessage());
             }
         }
-
         try {
             return mapper.writeValueAsString(combined);
         } catch (Exception e) {
@@ -151,7 +155,7 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
     public void run() {
         try {
             String encodedUserId =UUID.randomUUID().toString();
-            url = "wss://websocket.joshlei.com/growagarden?user_id=" + encodedUserId;
+            url = "wss://websocket.joshlei.com/growagarden";
             connect(url);
             System.out.println("Connected successfully to the web socket");
         } catch (Exception e) {
@@ -167,6 +171,7 @@ public class GardenWebSocketClient implements Runnable, Obeserver {
     }
 
     private void attemptReconnect() {
+
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {

@@ -13,7 +13,9 @@ import org.Utiilities.IStock;
 import org.Utiilities.MessageBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
@@ -99,7 +101,7 @@ public class ChannelNotifier implements IStock {
             Snowflake channelId = channels.pop();
         client.getChannelById(channelId)
                 .ofType(MessageChannel.class)
-                .flatMap(channel -> channel.createEmbed(embedBuilder.build()))
+                .flatMap(channel -> channel.createEmbed(embedBuilder.build())).retryWhen(Retry.backoff(5, Duration.ofSeconds(3)))
                 .doOnError(error -> System.err.println("Failed to send embed: " + error.getMessage()))
                 .subscribe();
     }
