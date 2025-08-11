@@ -31,6 +31,6 @@ mvn clean package
 ```
 3️⃣ Run the Bot
 The bot requires one arguments:
-java -jar target/grow-a-garden-stock-bot.jar <BOT_TOKEN>
+java -jar target/grow-a-garden-stock-bot.jar <BOT_TOKEN> <API_TOKEN> -Denv=prod
 ```
-
+You can get the api token in this Grow A Garden | API & WebSocket discord channel https://discord.com/invite/growagardenapi 
