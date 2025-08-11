@@ -10,9 +10,12 @@ import discord4j.gateway.intent.IntentSet;
 import org.BaseClasses.GuildReference;
 import org.BaseClasses.Item;
 import org.BaseClasses.Weather;
+import org.Commands.CommandHandler;
 import org.Console.ConsoleMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.storage.GuildStorage;
+import org.storage.AddChannel;
 
 import java.util.ArrayList;
 import java.util.Stack;
@@ -26,7 +29,8 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
     Obeserver observer;
     ArrayList<Item> lastStock;
     GuildStorage storedGuilds;
-
+    AddChannel guildSaver;
+    CommandHandler commandHandler;
 
     public StockBot(String botToken,Obeserver obeserver) {
         this.botToken = botToken;
@@ -64,8 +68,10 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
 
     private void initComponents() {
         storedGuilds = new GuildStorage();
+        this.guildSaver = storedGuilds;
         notifier.initComponents(storedGuilds);
         notifier.setDiscordGateway(gateway);
+        this.commandHandler = new CommandHandler();
     }
 
     private void listenToCommands() {
@@ -79,7 +85,7 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
                     if('!' != content.charAt(0)) return;
 
                     if("!sendStocks".equalsIgnoreCase(content)){
-                        notifier.notifyChannel(message,lastStock,gateway);
+                        notifier.notifyChannel(message);
                     }else if("!setChannel".equalsIgnoreCase(content)){
                         setChannel(message);
                     } else if ("!Hello".equalsIgnoreCase(content)) {
@@ -92,7 +98,6 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
                     }
                 });
     }
-
     private void setRole(Message message) {
         GuildReference reference = storedGuilds.addRole(message);
         if (reference == null){
@@ -103,7 +108,6 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
         notifier.updateRole(reference);
         System.out.println("Role added");
     }
-
     private void sendUnknownCommand(Message message) {
         message.getChannel().flatMap(channel -> channel.createMessage(message.getContent()+
                 " is an unknown command")).subscribe();
@@ -139,7 +143,7 @@ private void sendWorld(Message message) {
         if (!storedGuilds.addChannel(message)){
             return;
         }
-    notifier.notifyChannel(message,lastStock,gateway);
+    notifier.notifyChannel(message);
     }
     @Override
     public void triggerEventNotification(String message) {
@@ -157,7 +161,6 @@ private void sendWorld(Message message) {
     public void sendMessage(String message) {
         notifier.sendMessage(message);
     }
-
     @Override
     public void mentionRoleAndSend(String message) {
         notifier.mentionEveryone(message);

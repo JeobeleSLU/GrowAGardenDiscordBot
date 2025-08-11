@@ -1,7 +1,7 @@
 /*
 Author: Turtle :)
  */
-package org.Bot;
+package org.storage;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -12,16 +12,14 @@ import org.BaseClasses.GuildReference;
 import org.BaseClasses.GuildSetting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.storage.Store;
 
 import java.io.*;
 import java.lang.reflect.Type;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
 
-public class GuildStorage implements Store {
+public class GuildStorage implements Store, AddChannel {
     private static final Logger log = LoggerFactory.getLogger(GuildStorage.class);
     Gson jsonParser;
     String env = System.getProperty("env", "dev");
@@ -290,7 +288,6 @@ public class GuildStorage implements Store {
         this.guildObject.add(this.recentlyAdded);
         store();
     }
-
     /**
      * Returns true if the guild exists inside the guildObject
      * @param message
@@ -299,7 +296,6 @@ public class GuildStorage implements Store {
     private boolean guildExists(Message message) {
         Optional<Snowflake> optional = message.getGuildId();
         if (optional.isEmpty()) return false;
-
         Snowflake guildId = optional.get();
         return guildObject.stream().anyMatch(e -> e.getGuildID().equals(guildId));
     }

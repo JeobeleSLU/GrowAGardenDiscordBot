@@ -13,7 +13,9 @@ import java.util.Map;
 public class MessageBuilder {
     IStock botObeserver;
 
-    public MessageBuilder(IStock botObeserver) {
+    public MessageBuilder() {
+    }
+    public void setBotObeserver(IStock botObeserver) {
         this.botObeserver = botObeserver;
     }
 
