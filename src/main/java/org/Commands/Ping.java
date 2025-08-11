@@ -8,6 +8,6 @@ public class Ping implements ICommand{
     public void execute(Message message, GatewayDiscordClient client) {
         message.getChannel()
                 .flatMap(channel -> channel.createMessage("Pong!"))
-                .subscribe();
+                .subscribe();   
     }
 }
