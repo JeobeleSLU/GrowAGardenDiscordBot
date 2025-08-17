@@ -11,6 +11,7 @@ import org.BaseClasses.Item;
 import org.BaseClasses.Weather;
 import org.Utiilities.IStock;
 import org.Utiilities.MessageBuilder;
+import org.storage.GuildStorage;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
@@ -19,7 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
-public class ChannelNotifier implements IStock {
+public class ChannelNotifier implements IStock,StockNotifier {
     boolean isTravellingMerchantPresent = false;
     static int cycleCounter = 1;
     GatewayDiscordClient gateway;
@@ -27,44 +28,50 @@ public class ChannelNotifier implements IStock {
     GuildStorage storedGuilds;
     boolean isMasterInStock= false;
     MessageBuilder messageService;
+    ArrayList<Item> lastStock;
 
     public ChannelNotifier() {
          guilds =new HashSet<>();
     }
+
+    public void setLastStock(ArrayList<Item> lastStock) {
+        this.lastStock = lastStock;
+    }
+
     void initComponents(GuildStorage storage){
         this.storedGuilds = storage;
-        this.messageService = new MessageBuilder(this);
+        this.messageService = new MessageBuilder();
+        messageService.setBotObeserver(this);
         if (!storedGuilds.getGuildObject().isEmpty()){
             guilds.addAll(storedGuilds.getGuildObject());
         }
 
     };
-
     public void notifyStock(ArrayList<Item> items, GatewayDiscordClient client) {
+        setLastStock(items);
         EmbedCreateSpec.Builder stock = messageService.getStockMessage(items);
         if (isMasterInStock){
             mentionEveryone("Master in stock!");
         }
        sendEmbed(stock,client);
     }
-    public void notifyChannel(Message message, ArrayList<Item> lastStock, GatewayDiscordClient client) {
+    public void notifyChannel(Message message) {
         GuildReference recentChannel = new GuildReference(message.getGuildId().get(),message.getChannelId());
         guilds.add(recentChannel);
         if (lastStock == null || lastStock.isEmpty()) {
-            client.getChannelById(message.getChannelId())
+            gateway.getChannelById(message.getChannelId())
                     .ofType(MessageChannel.class)
                     .flatMap(channel -> channel.createMessage("Can't get previous stock."))
                     .subscribe();
             return;
         }
         EmbedCreateSpec stock = messageService.getStockMessage(lastStock).build();
-        client.getChannelById(message.getChannelId())
+        gateway.getChannelById(message.getChannelId())
                 .ofType(MessageChannel.class)
                 .flatMapMany(channel ->channel.createMessage(stock)
                 )
                 .subscribe();
         }
-
     public void notifyBotOnline(GatewayDiscordClient client) {
         Flux.fromIterable(guilds)
                 .flatMap(guildId -> {
@@ -75,7 +82,6 @@ public class ChannelNotifier implements IStock {
                 })
                 .subscribe();
     }
-
     public void notifyMessage(String message, GatewayDiscordClient client) {
         EmbedCreateSpec.Builder embedBuilder = messageService.notifyMessage(message);
 
@@ -167,6 +173,7 @@ public class ChannelNotifier implements IStock {
                 .subscribe();
 
     }
+
     public void setDiscordGateway(GatewayDiscordClient gateway) {
         this.gateway = gateway;
     }
@@ -202,13 +209,13 @@ public class ChannelNotifier implements IStock {
     @Override
     public void setTravellingMerchant(boolean isTravellingMerchantPresent) {
         this.isTravellingMerchantPresent = isTravellingMerchantPresent;
-
     }
-
     @Override
     public void reset() {
         this.isTravellingMerchantPresent = false ;
         this.isMasterInStock = false ;
     }
-
+    StockNotifier getStockNotifier(){
+        return this;
+    }
 }
