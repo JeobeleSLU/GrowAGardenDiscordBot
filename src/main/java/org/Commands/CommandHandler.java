@@ -16,7 +16,7 @@ public class CommandHandler {
     MessageBuilder builder;
 
     HashMap<String,ICommand> commands;
-    void initComponents(){
+    public void initComponents(){
         this.commands = new HashMap<>();
         this.commandStack = new Stack<>();
         this.builder = new MessageBuilder();
@@ -67,6 +67,15 @@ public class CommandHandler {
     }
     public HashMap<String, ICommand> getCommands() {
         return commands;
+    }
+    public ICommand getCommand (String command){
+        command = command.replace("!","");
+
+        if (!commands.containsKey(command)){
+            return null;
+        }
+
+        return commands.get(command);
     }
 
 }

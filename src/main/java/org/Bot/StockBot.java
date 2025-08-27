@@ -11,6 +11,7 @@ import org.BaseClasses.GuildReference;
 import org.BaseClasses.Item;
 import org.BaseClasses.Weather;
 import org.Commands.CommandHandler;
+import org.Commands.ICommand;
 import org.Console.ConsoleMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,12 +24,12 @@ import java.util.Stack;
 public class StockBot implements Runnable,NotificationHandler,WeatherAlert, ConsoleMessage {
     private static final Logger log = LoggerFactory.getLogger(StockBot.class);
     GatewayDiscordClient gateway;
-    DiscordClient client;
     ChannelNotifier notifier = new ChannelNotifier();
+    StockNotifier notification = notifier.getStockNotifier();
     String botToken ;
     Obeserver observer;
     ArrayList<Item> lastStock;
-    GuildStorage storedGuilds;
+    static GuildStorage storedGuilds;
     AddChannel guildSaver;
     CommandHandler commandHandler;
 
@@ -37,7 +38,6 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
         this.observer = obeserver;
     }
     private void connect(String botToken) {
-        client = DiscordClient.create(botToken);
         gateway = DiscordClient.create(botToken)
                 .gateway()
                 .setEnabledIntents(IntentSet.nonPrivileged().or(IntentSet.of(Intent.MESSAGE_CONTENT)))
@@ -49,7 +49,6 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
         lastStock = items;
         notifier.notifyStock(items,gateway);
     }
-
     @Override
     public void run() {
         if (botToken.isEmpty()) {
@@ -72,6 +71,7 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
         notifier.initComponents(storedGuilds);
         notifier.setDiscordGateway(gateway);
         this.commandHandler = new CommandHandler();
+        commandHandler.initComponents();
     }
 
     private void listenToCommands() {
@@ -83,19 +83,11 @@ public class StockBot implements Runnable,NotificationHandler,WeatherAlert, Cons
                     String content = message.getContent();
                     if (content.isEmpty()) return;
                     if('!' != content.charAt(0)) return;
-
-                    if("!sendStocks".equalsIgnoreCase(content)){
-                        notifier.notifyChannel(message);
-                    }else if("!setChannel".equalsIgnoreCase(content)){
-                        setChannel(message);
-                    } else if ("!Hello".equalsIgnoreCase(content)) {
-                        sendWorld(message);
-                    } else if ("!ping".equalsIgnoreCase(content)) {
-                        sendPong(message);
-                    } else if ("!setRole".contains(content)) {
-                        System.out.println("setting roles");
-                        setRole(message);
-                    }
+                   ICommand command =  commandHandler.getCommand(content);
+                   if (command == null){
+                       sendUnknownCommand(message);
+                   }
+                    command.execute(message,gateway);
                 });
     }
     private void setRole(Message message) {

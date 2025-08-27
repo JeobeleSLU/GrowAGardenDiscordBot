@@ -215,7 +215,7 @@ public class ChannelNotifier implements IStock,StockNotifier {
         this.isTravellingMerchantPresent = false ;
         this.isMasterInStock = false ;
     }
-    StockNotifier getStockNotifier(){
+    public StockNotifier getStockNotifier(){
         return this;
     }
 }
